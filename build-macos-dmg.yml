@@ -1,0 +1,25 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-dmg:
+    runs-on: macos-14
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build and package DMG
+        working-directory: mac-universal-opener
+        run: sh make-dmg.sh
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenEverything-macOS
+          path: mac-universal-opener/OpenEverything-*.dmg
+          if-no-files-found: error
