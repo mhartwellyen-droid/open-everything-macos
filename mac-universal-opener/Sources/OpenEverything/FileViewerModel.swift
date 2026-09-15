@@ -8,8 +8,12 @@ final class FileViewerModel: ObservableObject {
     @Published var showImporter = false
     @Published var loadError: String?
     @Published private(set) var recentURLs: [URL] = []
+    private var securityScopedURLs: Set<URL> = []
 
     func open(_ url: URL) {
+        if url.startAccessingSecurityScopedResource() {
+            securityScopedURLs.insert(url)
+        }
         loadError = nil
         selectedURL = url
         recentURLs.removeAll { $0 == url }
