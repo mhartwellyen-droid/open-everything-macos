@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.2.0"
+VERSION="1.3.0"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -72,7 +72,9 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
   git config user.name "Open Everything Build"
   git config user.email "actions@users.noreply.github.com"
   git checkout -B dmg-output
-  git add -f "$DMG_PATH"
+  rm -f "$DMG_PATH".part-*
+  split -b 80m "$DMG_PATH" "$DMG_PATH.part-"
+  git add -f "$DMG_PATH".part-*
   git commit -m "Publish Open Everything $VERSION DMG"
   git push --force origin HEAD:dmg-output
 fi

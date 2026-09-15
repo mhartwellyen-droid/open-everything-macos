@@ -32,6 +32,41 @@ struct ExecutableLauncherView: View {
     }
 
     private func launch() -> String {
+        if let embeddedWine = Bundle.main.resourceURL?
+            .appendingPathComponent("WineRuntime/bin/wine"),
+           FileManager.default.isExecutableFile(atPath: embeddedWine.path) {
+            do {
+                let support = try FileManager.default.url(
+                    for: .applicationSupportDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true
+                )
+                let prefix = support
+                    .appendingPathComponent("Open Everything", isDirectory: true)
+                    .appendingPathComponent("WinePrefix", isDirectory: true)
+                try FileManager.default.createDirectory(
+                    at: prefix,
+                    withIntermediateDirectories: true
+                )
+
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/arch")
+                process.arguments = ["-x86_64", embeddedWine.path, url.path]
+                process.currentDirectoryURL = url.deletingLastPathComponent()
+                var environment = ProcessInfo.processInfo.environment
+                environment["WINEPREFIX"] = prefix.path
+                environment["WINEDEBUG"] = "-all"
+                environment["PATH"] = embeddedWine.deletingLastPathComponent().path
+                    + ":" + (environment["PATH"] ?? "/usr/bin:/bin")
+                process.environment = environment
+                try process.run()
+                return "Started with the built-in Wine runtime. The first launch may take a minute while Windows support is initialized."
+            } catch {
+                return "The built-in Windows runtime could not start: \(error.localizedDescription). On Apple Silicon, install Rosetta 2 and try again."
+            }
+        }
+
         let workspace = NSWorkspace.shared
         let appNames = ["Whisky", "CrossOver", "Wine Stable"]
         for name in appNames {
@@ -60,7 +95,7 @@ struct ExecutableLauncherView: View {
                 return "Wine could not start: \(error.localizedDescription)"
             }
         }
-        return "No Windows compatibility app was found. Install Whisky, CrossOver, or Wine, then try again."
+        return "The built-in Windows runtime is missing. Reinstall Open Everything, or install Whisky, CrossOver, or Wine."
     }
 
     private func bundleID(for appName: String) -> String {

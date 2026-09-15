@@ -9,6 +9,9 @@ OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 SIGNING_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
 REQUIRE_SIGNING="${REQUIRE_SIGNING:-0}"
+WINE_VERSION="11.17"
+WINE_ARCHIVE="$PWD/.build/wine-staging-$WINE_VERSION-osx64.tar.xz"
+WINE_URL="https://github.com/Gcenx/macOS_Wine_builds/releases/download/$WINE_VERSION/wine-staging-$WINE_VERSION-osx64.tar.xz"
 
 echo "Building Open Everything…"
 swift build -c release
@@ -18,6 +21,21 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/OpenEverything" "$APP_DIR/Contents/MacOS/OpenEverything"
 cp "Sources/OpenEverything/Resources/jsnes.min.js" "$APP_DIR/Contents/Resources/"
 cp "Sources/OpenEverything/Resources/JSNES-LICENSE.txt" "$APP_DIR/Contents/Resources/"
+
+if [ ! -f "$WINE_ARCHIVE" ]; then
+  echo "Downloading Wine Staging $WINE_VERSION runtime…"
+  curl -L --fail --retry 3 -o "$WINE_ARCHIVE" "$WINE_URL"
+fi
+WINE_EXTRACT="$PWD/.build/wine-runtime-$WINE_VERSION"
+rm -rf "$WINE_EXTRACT"
+mkdir -p "$WINE_EXTRACT"
+tar -xf "$WINE_ARCHIVE" -C "$WINE_EXTRACT"
+cp -R \
+  "$WINE_EXTRACT/Wine Staging.app/Contents/Resources/wine" \
+  "$APP_DIR/Contents/Resources/WineRuntime"
+cp "Sources/OpenEverything/Resources/WINE-RUNTIME-NOTICE.txt" \
+  "$APP_DIR/Contents/Resources/"
+test -x "$APP_DIR/Contents/Resources/WineRuntime/bin/wine"
 
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -39,7 +57,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.2.0</string>
+    <string>1.3.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

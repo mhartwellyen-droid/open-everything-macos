@@ -10,7 +10,7 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Text and source-code files in a selectable raw-text view.
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.
 - Any file in its default installed Mac application.
-- Windows executables can be handed to Whisky, CrossOver, or Wine when one is installed.
+- Windows executables run through a bundled Wine Staging runtime. Apple Silicon Macs require Rosetta 2, and application compatibility varies.
 
 ### NES controls
 

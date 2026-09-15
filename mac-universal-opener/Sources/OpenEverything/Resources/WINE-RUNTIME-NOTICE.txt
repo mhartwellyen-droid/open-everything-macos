@@ -1,0 +1,12 @@
+Open Everything includes Wine Staging 11.17 from:
+https://github.com/Gcenx/macOS_Wine_builds
+
+Wine is free software distributed under the GNU Lesser General Public
+License, version 2.1 or later. Source code and license information are
+available from:
+https://gitlab.winehq.org/wine/wine
+https://www.winehq.org/license
+
+Wine is an independent compatibility layer and is not affiliated with
+Microsoft. Compatibility varies by Windows application. Some multimedia
+applications also require GStreamer.
