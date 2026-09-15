@@ -36,11 +36,18 @@ struct Model3DView: View {
                     .padding()
                 }
             } else if let errorMessage {
-                ContentUnavailableView(
-                    "Couldn’t load this 3D file",
-                    systemImage: "cube.transparent",
-                    description: Text(errorMessage)
-                )
+                VStack(spacing: 12) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 48, weight: .light))
+                        .foregroundStyle(.secondary)
+                    Text("Couldn’t load this 3D file")
+                        .font(.title2.weight(.semibold))
+                    Text(errorMessage)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 480)
+                }
+                .padding()
             } else {
                 ProgressView("Loading 3D model…")
             }
