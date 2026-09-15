@@ -11,13 +11,6 @@ SIGNING_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
 REQUIRE_SIGNING="${REQUIRE_SIGNING:-0}"
 
 echo "Building Open Everything…"
-
-RESOURCE_DIR="$PWD/Sources/OpenEverything/Resources"
-if [ -f "$RESOURCE_DIR/nes-player.dat" ]; then
-  base64 --decode "$RESOURCE_DIR/nes-player.dat" \
-    > "$RESOURCE_DIR/nes-player.html"
-fi
-
 swift build -c release
 
 rm -rf "$APP_DIR"
