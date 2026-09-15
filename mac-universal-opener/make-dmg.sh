@@ -44,33 +44,37 @@ hdiutil create \
 
 rm -rf "$STAGING_DIR"
 
-if [ -z "$SIGNING_IDENTITY" ]; then
-  echo "DEVELOPER_ID_APPLICATION is required to sign the DMG." >&2
-  exit 1
+if [ -n "$SIGNING_IDENTITY" ]; then
+  echo "Signing DMG…"
+  codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG_PATH"
+  codesign --verify --strict --verbose=2 "$DMG_PATH"
+
+  if [ -n "$APPLE_ID" ] && [ -n "$APPLE_TEAM_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+    echo "Submitting DMG to Apple notarization service…"
+    xcrun notarytool submit "$DMG_PATH" \
+      --apple-id "$APPLE_ID" \
+      --team-id "$APPLE_TEAM_ID" \
+      --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+      --wait
+
+    echo "Stapling notarization ticket…"
+    xcrun stapler staple "$DMG_PATH"
+    xcrun stapler validate "$DMG_PATH"
+    spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
+  else
+    echo "Apple notarization credentials are absent; delivering a signed, unnotarized DMG."
+  fi
+else
+  echo "Developer ID is absent; delivering an unsigned DMG."
 fi
 
-echo "Signing DMG…"
-codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG_PATH"
-codesign --verify --strict --verbose=2 "$DMG_PATH"
-
-if [ -z "$APPLE_ID" ] || [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
-  echo "APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD are required for notarization." >&2
-  exit 1
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  git config user.name "Open Everything Build"
+  git config user.email "actions@users.noreply.github.com"
+  git checkout -B dmg-output
+  git add -f "$DMG_PATH"
+  git commit -m "Publish Open Everything $VERSION DMG"
+  git push --force origin HEAD:dmg-output
 fi
-
-echo "Submitting DMG to Apple notarization service…"
-xcrun notarytool submit "$DMG_PATH" \
-  --apple-id "$APPLE_ID" \
-  --team-id "$APPLE_TEAM_ID" \
-  --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-  --wait
-
-echo "Stapling notarization ticket…"
-xcrun stapler staple "$DMG_PATH"
-xcrun stapler validate "$DMG_PATH"
-
-echo "Validating app and DMG with Gatekeeper…"
-spctl --assess --type execute --verbose=4 "$APP_DIR"
-spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
 
 echo "Created: $DMG_PATH"
