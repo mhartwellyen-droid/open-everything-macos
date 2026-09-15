@@ -112,8 +112,16 @@ struct ContentView: View {
                 Divider()
                 switch tab {
                 case .preview:
-                    QuickLookView(url: url)
-                        .id(url)
+                    if url.pathExtension.lowercased() == "nes" {
+                        NESPlayerView(romURL: url)
+                            .id(url)
+                    } else if url.pathExtension.lowercased() == "exe" {
+                        ExecutableLauncherView(url: url)
+                            .id(url)
+                    } else {
+                        QuickLookView(url: url)
+                            .id(url)
+                    }
                 case .raw:
                     RawInspectorView(url: url)
                 case .info:
