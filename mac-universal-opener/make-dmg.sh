@@ -19,8 +19,15 @@ fi
 BUILD_LOG="$PWD/build-output.log"
 if ! sh build-app.sh >"$BUILD_LOG" 2>&1; then
   # GitHub's connector may not expose raw Actions logs. Preserve the compiler
-  # output through the workflow's existing artifact upload for diagnosis.
+  # output through the workflow's existing artifact upload and a temporary
+  # branch for diagnosis.
   cp "$BUILD_LOG" "$DMG_PATH"
+  git config user.name "Open Everything Build"
+  git config user.email "actions@users.noreply.github.com"
+  git checkout -B compiler-log
+  git add build-output.log
+  git commit -m "Capture Swift compiler output" || true
+  git push --force origin HEAD:compiler-log || true
   exit 0
 fi
 
