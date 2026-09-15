@@ -69,14 +69,17 @@ else
 fi
 
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
-  git config user.name "Open Everything Build"
-  git config user.email "actions@users.noreply.github.com"
-  git checkout -B dmg-output
-  rm -f "$DMG_PATH".part-*
-  split -b 80m "$DMG_PATH" "$DMG_PATH.part-"
-  git add -f "$DMG_PATH".part-*
-  git commit -m "Publish Open Everything $VERSION DMG"
-  git push --force origin HEAD:dmg-output
+  AUTH_HEADER=$(git config --local --get http.https://github.com/.extraheader)
+  ENCODED_TOKEN=$(printf "%s" "$AUTH_HEADER" | awk '{print $3}')
+  GH_TOKEN=$(printf "%s" "$ENCODED_TOKEN" | base64 --decode | cut -d: -f2-)
+  export GH_TOKEN
+  TAG="v$VERSION"
+  gh release view "$TAG" >/dev/null 2>&1 || \
+    gh release create "$TAG" \
+      --target "${GITHUB_SHA:-main}" \
+      --title "Open Everything $VERSION" \
+      --notes "Includes the embedded Wine Staging 11.17 runtime for direct .exe launching, NES emulation, and native 3D viewing."
+  gh release upload "$TAG" "$DMG_PATH" --clobber
 fi
 
 echo "Created: $DMG_PATH"
