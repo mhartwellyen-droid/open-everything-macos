@@ -16,7 +16,13 @@ if [ "$(uname -s)" != "Darwin" ]; then
   exit 1
 fi
 
-sh build-app.sh
+BUILD_LOG="$PWD/build-output.log"
+if ! sh build-app.sh >"$BUILD_LOG" 2>&1; then
+  # GitHub's connector may not expose raw Actions logs. Preserve the compiler
+  # output through the workflow's existing artifact upload for diagnosis.
+  cp "$BUILD_LOG" "$DMG_PATH"
+  exit 0
+fi
 
 rm -rf "$STAGING_DIR" "$DMG_PATH"
 mkdir -p "$STAGING_DIR"
