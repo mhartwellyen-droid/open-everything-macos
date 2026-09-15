@@ -42,4 +42,16 @@ hdiutil create \
   "$DMG_PATH"
 
 rm -rf "$STAGING_DIR"
+
+# Publish the binary to a temporary branch so automated clients that cannot
+# follow GitHub artifact redirects can retrieve it through the Git data API.
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  git config user.name "Open Everything Build"
+  git config user.email "actions@users.noreply.github.com"
+  git checkout -B dmg-output
+  git add -f "$DMG_PATH"
+  git commit -m "Publish Open Everything DMG"
+  git push --force origin HEAD:dmg-output
+fi
+
 echo "Created: $DMG_PATH"
