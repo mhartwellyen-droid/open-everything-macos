@@ -118,6 +118,11 @@ struct ContentView: View {
                     } else if url.pathExtension.lowercased() == "exe" {
                         ExecutableLauncherView(url: url)
                             .id(url)
+                    } else if Model3DView.supportedExtensions.contains(
+                        url.pathExtension.lowercased()
+                    ) {
+                        Model3DView(url: url)
+                            .id(url)
                     } else {
                         QuickLookView(url: url)
                             .id(url)

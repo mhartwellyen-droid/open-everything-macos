@@ -5,6 +5,7 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 ## What it opens
 
 - NES ROMs run directly in the bundled emulator, with video, audio, and keyboard controls.
+- 3D models open in an interactive native viewer with orbit, pan, and zoom controls. Supported formats include OBJ, STL, PLY, DAE, 3DS, Alembic, SceneKit, and USD/USDZ variants.
 - Any format supported by macOS Quick Look, including common images, PDFs, audio, video, Office/iWork documents, fonts, 3D assets, and many archives.
 - Text and source-code files in a selectable raw-text view.
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.

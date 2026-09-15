@@ -10,10 +10,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OpenEverything",
-            path: "Sources/OpenEverything",
-            resources: [
-                .process("Resources")
-            ]
+            path: "Sources/OpenEverything"
         )
     ]
 )

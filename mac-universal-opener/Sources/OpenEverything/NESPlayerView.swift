@@ -15,7 +15,7 @@ struct NESPlayerView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.loadHTMLString(
             Self.playerHTML,
-            baseURL: Bundle.module.resourceURL
+            baseURL: Bundle.main.resourceURL
         )
         return webView
     }

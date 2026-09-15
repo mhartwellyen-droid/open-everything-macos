@@ -16,10 +16,8 @@ swift build -c release
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/OpenEverything" "$APP_DIR/Contents/MacOS/OpenEverything"
-for bundle in .build/release/*.bundle; do
-  [ -d "$bundle" ] || continue
-  cp -R "$bundle" "$APP_DIR/"
-done
+cp "Sources/OpenEverything/Resources/jsnes.min.js" "$APP_DIR/Contents/Resources/"
+cp "Sources/OpenEverything/Resources/JSNES-LICENSE.txt" "$APP_DIR/Contents/Resources/"
 
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -41,7 +39,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1.0</string>
+    <string>1.2.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
@@ -84,7 +82,9 @@ elif [ "$REQUIRE_SIGNING" = "1" ]; then
   echo "DEVELOPER_ID_APPLICATION is required when REQUIRE_SIGNING=1." >&2
   exit 1
 else
-  echo "Warning: built an unsigned app because DEVELOPER_ID_APPLICATION is not set." >&2
+  echo "Applying an ad-hoc signature for local distribution…"
+  codesign --force --deep --sign - "$APP_DIR"
+  codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 fi
 
 echo "Built: $APP_DIR"
