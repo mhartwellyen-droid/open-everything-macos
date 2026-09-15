@@ -121,14 +121,20 @@ struct ContentView: View {
                 }
             }
         } else {
-            ContentUnavailableView {
-                Label("Drop any file here", systemImage: "doc.viewfinder")
-            } description: {
+            VStack(spacing: 16) {
+                Image(systemName: "doc.viewfinder")
+                    .font(.system(size: 52, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("Drop any file here")
+                    .font(.title2.weight(.semibold))
                 Text("Preview supported formats or inspect any unknown file as text, metadata, or hexadecimal bytes.")
-            } actions: {
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 520)
                 Button("Choose a File…") { model.showImporter = true }
                     .buttonStyle(.borderedProminent)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(dropActive ? Color.accentColor.opacity(0.12) : Color.clear)
         }
     }
