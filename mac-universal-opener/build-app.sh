@@ -13,11 +13,10 @@ REQUIRE_SIGNING="${REQUIRE_SIGNING:-0}"
 echo "Building Open Everything…"
 
 RESOURCE_DIR="$PWD/Sources/OpenEverything/Resources"
-for encoded in "$RESOURCE_DIR"/*.b64; do
-  [ -f "$encoded" ] || continue
-  decoded=${encoded%.b64}
-  base64 --decode "$encoded" > "$decoded"
-done
+if [ -f "$RESOURCE_DIR/nes-player.dat" ]; then
+  base64 --decode "$RESOURCE_DIR/nes-player.dat" \
+    > "$RESOURCE_DIR/nes-player.html"
+fi
 
 swift build -c release
 
