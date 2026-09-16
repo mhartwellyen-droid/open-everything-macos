@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var dropActive = false
     @State private var confirmDelete = false
     @State private var showCompatibilityCenter = false
+    @State private var showBuiltInVM = false
+    @State private var vmSourceURL: URL?
 
     enum InspectorTab: String, CaseIterable, Identifiable {
         case preview = "Preview"
@@ -93,6 +95,15 @@ struct ContentView: View {
         .sheet(isPresented: $showCompatibilityCenter) {
             CompatibilityCenterView()
                 .frame(minWidth: 620, minHeight: 560)
+        }
+        .sheet(isPresented: $showBuiltInVM) {
+            BuiltInVMView(initialSourceURL: vmSourceURL)
+                .frame(minWidth: 900, minHeight: 650)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openBuiltInVM)) {
+            notification in
+            vmSourceURL = notification.object as? URL
+            showBuiltInVM = true
         }
     }
 

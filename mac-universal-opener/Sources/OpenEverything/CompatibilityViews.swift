@@ -20,7 +20,8 @@ struct WindowsDiskImageView: View {
             }
             .buttonStyle(.borderedProminent)
             Button("Use with Virtual Machine") {
-                status = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
+                NotificationCenter.default.post(name: .openBuiltInVM, object: url)
+                status = "Opening the built-in VM."
             }
             if let status {
                 Text(status)
@@ -91,7 +92,8 @@ struct LinuxFileView: View {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             }
             Button("Open Linux Virtual Machine") {
-                status = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
+                NotificationCenter.default.post(name: .openBuiltInVM, object: url)
+                status = "Opening the built-in VM."
             }
             if let status {
                 Text(status)
@@ -155,9 +157,6 @@ struct LegacyMacAppView: View {
                 .frame(maxWidth: 580)
             Button("Show App in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
-            }
-            Button("Open Legacy macOS Virtual Machine") {
-                _ = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

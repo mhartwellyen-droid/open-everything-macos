@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.6.0"
+VERSION="1.7.0"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -78,7 +78,7 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
     gh release create "$TAG" \
       --target "${GITHUB_SHA:-main}" \
       --title "Open Everything $VERSION" \
-      --notes "Includes the embedded Wine Staging 11.17 runtime for direct .exe launching, NES emulation, and native 3D viewing."
+      --notes "Includes built-in Linux and Windows virtual machines using Apple Virtualization, NES emulation, native 3D viewing, app wrappers, and safe Trash deletion."
   gh release upload "$TAG" "$DMG_PATH" --clobber
 fi
 

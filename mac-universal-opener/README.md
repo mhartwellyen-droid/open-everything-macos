@@ -10,7 +10,7 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Text and source-code files in a selectable raw-text view.
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.
 - Any file in its default installed Mac application.
-- Windows executables run through a bundled Wine Staging runtime. Apple Silicon Macs require Rosetta 2, and application compatibility varies.
+- Windows and Linux guests run through the built-in Apple Virtualization framework without a third-party VM application.
 - Windows installers, scripts, shortcuts, and DOS-style programs are routed appropriately for `.msi`, `.bat`, `.cmd`, `.com`, and `.lnk` files.
 - Any selected file can be exported as a standalone macOS `.app` wrapper with the file copied inside.
 - Selected files can be moved safely to Trash after confirmation.
@@ -18,8 +18,9 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Windows `.iso` and `.img` files can be mounted, then their `.exe` or `.msi` installers can be opened through the bundled Windows runtime.
 - Linux `.sh` scripts can run through the macOS shell after a safety confirmation; `.deb` and `.rpm` packages are identified with clear Linux-runtime guidance.
 - Legacy `.app` bundles show accurate guidance for 32-bit Mac applications, which require macOS Mojave or earlier and cannot be restored by Rosetta 2.
-- The Compatibility Center reports Mac architecture, Rosetta 2, bundled Wine health, and installed virtualization apps.
-- VM handoff supports installed UTM, VMware Fusion, Parallels Desktop, and VirtualBox for Windows/Linux images and legacy environments.
+- The Compatibility Center reports Mac architecture, Rosetta 2, and native VM readiness.
+- The built-in VM creates persistent Linux or Windows guests from user-supplied, architecture-compatible ISO or IMG files.
+- Removing the bundled Wine runtime reduces the installer by hundreds of megabytes; guest operating systems are installed on demand.
 
 ### NES controls
 
