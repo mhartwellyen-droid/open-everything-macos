@@ -15,7 +15,7 @@ It includes a custom icon displayed in Finder, the Dock, and Launchpad.
 - Windows and Linux guests run through the built-in Apple Virtualization framework without a third-party VM application.
 - Windows installers, scripts, shortcuts, and DOS-style programs are routed appropriately for `.msi`, `.bat`, `.cmd`, `.com`, and `.lnk` files.
 - Any selected file can be exported as a standalone macOS `.app` wrapper with the file copied inside.
-- Selected files can be moved safely to Trash after confirmation.
+- Trash icons remove entries only from Open Everything’s Recent list and never delete or move the Finder file.
 - Apple Silicon users see Rosetta 2 status plus a copyable installation command before launching Windows files.
 - Windows `.iso` and `.img` files can be used as installation media for the built-in Windows VM.
 - Linux `.sh` scripts can run through the macOS shell after a safety confirmation; `.deb` and `.rpm` packages are identified with clear Linux-runtime guidance.
@@ -26,6 +26,8 @@ It includes a custom icon displayed in Finder, the Dock, and Launchpad.
 - EXE, MSI, BAT, CMD, COM, and LNK files can install a Wine runtime on first use and run directly without a Windows ISO; the app installer remains lightweight.
 - The Compatibility Center includes an ISO tutorial and official Windows and Ubuntu download links for users who want a full VM.
 - The VM screen explains that it unlocks complete guest desktops, Windows software beyond Wine, Linux packages and ELF programs, persistent storage, networking, and isolated testing.
+- The Updates screen opens the latest Open Everything release from inside the app.
+- First-launch help and a prominent DMG README explain how to resolve Gatekeeper’s damaged-app warning with a narrowly scoped `sudo xattr` command.
 
 ### NES controls
 

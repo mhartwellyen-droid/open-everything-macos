@@ -22,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct OpenEverythingApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = FileViewerModel()
+    @AppStorage("didShowGatekeeperHelp") private var didShowGatekeeperHelp = false
+    @State private var showGatekeeperHelp = false
 
     var body: some Scene {
         WindowGroup {
@@ -32,6 +34,15 @@ struct OpenEverythingApp: App {
                     appDelegate.openHandler = { url in
                         Task { @MainActor in model.open(url) }
                     }
+                    if !didShowGatekeeperHelp {
+                        showGatekeeperHelp = true
+                    }
+                }
+                .sheet(isPresented: $showGatekeeperHelp, onDismiss: {
+                    didShowGatekeeperHelp = true
+                }) {
+                    GatekeeperHelpView()
+                        .frame(minWidth: 560, minHeight: 390)
                 }
         }
         .commands {

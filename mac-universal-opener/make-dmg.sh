@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.9.0"
+VERSION="1.10.0"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -34,6 +34,20 @@ rm -rf "$STAGING_DIR" "$DMG_PATH"
 mkdir -p "$STAGING_DIR"
 cp -R "$APP_DIR" "$STAGING_DIR/$BUNDLE_NAME"
 ln -s /Applications "$STAGING_DIR/Applications"
+cat > "$STAGING_DIR/READ ME - If macOS Says Damaged.txt" <<'HELP'
+OPEN EVERYTHING — FIRST LAUNCH HELP
+
+1. Drag OpenEverything.app into the Applications folder.
+2. Right-click OpenEverything.app and choose Open.
+3. If macOS says the app is damaged or cannot be opened, open Terminal,
+   paste the command below, press Return, and enter your Mac password:
+
+sudo xattr -rd com.apple.quarantine "/Applications/OpenEverything.app"
+
+Terminal does not display password characters while you type.
+This command removes the download quarantine attribute from this app only.
+It does not disable Gatekeeper system-wide.
+HELP
 
 hdiutil create \
   -volname "$APP_NAME" \

@@ -27,6 +27,10 @@ final class FileViewerModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([selectedURL])
     }
 
+    func removeFromRecents(_ url: URL) {
+        recentURLs.removeAll { $0 == url }
+    }
+
     func openWithDefaultApp() {
         guard let selectedURL else { return }
         NSWorkspace.shared.open(selectedURL)
@@ -95,21 +99,6 @@ final class FileViewerModel: ObservableObject {
         }
     }
 
-    func moveSelectedFileToTrash() {
-        guard let target = selectedURL else { return }
-        NSWorkspace.shared.recycle([target]) { [weak self] _, error in
-            Task { @MainActor in
-                guard let self else { return }
-                if let error {
-                    self.actionMessage = "Couldn’t move the file to Trash: \(error.localizedDescription)"
-                } else {
-                    self.recentURLs.removeAll { $0 == target }
-                    self.selectedURL = nil
-                    self.actionMessage = "\(target.lastPathComponent) was moved to Trash."
-                }
-            }
-        }
-    }
 }
 
 struct FileDetails {

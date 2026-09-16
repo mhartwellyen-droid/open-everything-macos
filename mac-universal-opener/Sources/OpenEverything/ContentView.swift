@@ -5,10 +5,10 @@ struct ContentView: View {
     @EnvironmentObject private var model: FileViewerModel
     @State private var tab = InspectorTab.preview
     @State private var dropActive = false
-    @State private var confirmDelete = false
     @State private var showCompatibilityCenter = false
     @State private var showBuiltInVM = false
     @State private var vmSourceURL: URL?
+    @State private var showUpdates = false
 
     enum InspectorTab: String, CaseIterable, Identifiable {
         case preview = "Preview"
@@ -57,6 +57,9 @@ struct ContentView: View {
                 Button(action: { showCompatibilityCenter = true }) {
                     Label("Compatibility Center", systemImage: "checkmark.shield")
                 }
+                Button(action: { showUpdates = true }) {
+                    Label("Updates", systemImage: "arrow.down.circle")
+                }
                 if model.selectedURL != nil {
                     Button(action: model.makeSelectedFileApp) {
                         Label("Make App", systemImage: "app.badge")
@@ -67,19 +70,15 @@ struct ContentView: View {
                     Button(action: model.revealInFinder) {
                         Label("Show in Finder", systemImage: "finder")
                     }
-                    Button(role: .destructive, action: { confirmDelete = true }) {
-                        Label("Move to Trash", systemImage: "trash")
+                    Button {
+                        if let url = model.selectedURL {
+                            model.removeFromRecents(url)
+                        }
+                    } label: {
+                        Label("Remove from Recents", systemImage: "trash")
                     }
                 }
             }
-        }
-        .alert("Move this file to Trash?", isPresented: $confirmDelete) {
-            Button("Cancel", role: .cancel) {}
-            Button("Move to Trash", role: .destructive) {
-                model.moveSelectedFileToTrash()
-            }
-        } message: {
-            Text(model.selectedURL?.lastPathComponent ?? "The selected file")
         }
         .alert(
             "Open Everything",
@@ -99,6 +98,10 @@ struct ContentView: View {
         .sheet(isPresented: $showBuiltInVM) {
             BuiltInVMView(initialSourceURL: vmSourceURL)
                 .frame(minWidth: 900, minHeight: 650)
+        }
+        .sheet(isPresented: $showUpdates) {
+            UpdateCenterView()
+                .frame(minWidth: 520, minHeight: 360)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openBuiltInVM)) {
             notification in
@@ -135,9 +138,20 @@ struct ContentView: View {
                     get: { model.selectedURL },
                     set: { if let url = $0 { model.open(url) } }
                 )) { url in
-                    Label(url.lastPathComponent, systemImage: "doc")
-                        .lineLimit(1)
-                        .tag(url)
+                    HStack {
+                        Label(url.lastPathComponent, systemImage: "doc")
+                            .lineLimit(1)
+                        Spacer()
+                        Button {
+                            model.removeFromRecents(url)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Remove from Recents — the Finder file is not deleted")
+                    }
+                    .tag(url)
                 }
             }
         }
