@@ -2,6 +2,8 @@
 
 A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform Type Identifiers. It does not run in a browser.
 
+It includes a custom icon displayed in Finder, the Dock, and Launchpad.
+
 ## What it opens
 
 - NES ROMs run directly in the bundled emulator, with video, audio, and keyboard controls.
@@ -15,7 +17,7 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Any selected file can be exported as a standalone macOS `.app` wrapper with the file copied inside.
 - Selected files can be moved safely to Trash after confirmation.
 - Apple Silicon users see Rosetta 2 status plus a copyable installation command before launching Windows files.
-- Windows `.iso` and `.img` files can be mounted, then their `.exe` or `.msi` installers can be opened through the bundled Windows runtime.
+- Windows `.iso` and `.img` files can be used as installation media for the built-in Windows VM.
 - Linux `.sh` scripts can run through the macOS shell after a safety confirmation; `.deb` and `.rpm` packages are identified with clear Linux-runtime guidance.
 - Legacy `.app` bundles show accurate guidance for 32-bit Mac applications, which require macOS Mojave or earlier and cannot be restored by Rosetta 2.
 - The Compatibility Center reports Mac architecture, Rosetta 2, and native VM readiness.

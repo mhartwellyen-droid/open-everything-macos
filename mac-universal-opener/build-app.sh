@@ -19,6 +19,22 @@ cp ".build/release/OpenEverything" "$APP_DIR/Contents/MacOS/OpenEverything"
 cp "Sources/OpenEverything/Resources/jsnes.min.js" "$APP_DIR/Contents/Resources/"
 cp "Sources/OpenEverything/Resources/JSNES-LICENSE.txt" "$APP_DIR/Contents/Resources/"
 
+ICON_SOURCE="Sources/OpenEverything/Resources/AppIcon.png"
+ICONSET="$OUTPUT_DIR/AppIcon.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+sips -z 16 16 "$ICON_SOURCE" --out "$ICONSET/icon_16x16.png" >/dev/null
+sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET/icon_32x32.png" >/dev/null
+sips -z 64 64 "$ICON_SOURCE" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+sips -z 128 128 "$ICON_SOURCE" --out "$ICONSET/icon_128x128.png" >/dev/null
+sips -z 256 256 "$ICON_SOURCE" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+sips -z 256 256 "$ICON_SOURCE" --out "$ICONSET/icon_256x256.png" >/dev/null
+sips -z 512 512 "$ICON_SOURCE" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+sips -z 512 512 "$ICON_SOURCE" --out "$ICONSET/icon_512x512.png" >/dev/null
+cp "$ICON_SOURCE" "$ICONSET/icon_512x512@2x.png"
+iconutil -c icns "$ICONSET" -o "$APP_DIR/Contents/Resources/AppIcon.icns"
+
 
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -33,6 +49,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <string>OpenEverything</string>
     <key>CFBundleIdentifier</key>
     <string>app.openeverything.viewer</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -40,7 +58,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.7.0</string>
+    <string>1.8.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
