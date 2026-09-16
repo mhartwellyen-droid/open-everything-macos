@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.13.0"
+VERSION="1.13.1"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -42,7 +42,7 @@ OPEN EVERYTHING — FIRST LAUNCH HELP
 3. If macOS says the app is damaged or cannot be opened, open Terminal,
    paste the command below, press Return, and enter your Mac password:
 
-sudo xattr -rd com.apple.quarantine "/Applications/OpenEverything.app"
+sudo xattr -rd com.apple.quarantine /Applications/OpenEverything.app
 
 Terminal does not display password characters while you type.
 This command removes the download quarantine attribute from this app only.

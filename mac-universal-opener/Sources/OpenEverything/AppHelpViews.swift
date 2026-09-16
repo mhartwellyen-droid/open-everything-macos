@@ -47,7 +47,7 @@ struct UpdateCenterView: View {
 struct GatekeeperHelpView: View {
     @Environment(\.dismiss) private var dismiss
     private let command =
-        "sudo xattr -rd com.apple.quarantine \"/Applications/OpenEverything.app\""
+        "sudo xattr -rd com.apple.quarantine /Applications/OpenEverything.app"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
