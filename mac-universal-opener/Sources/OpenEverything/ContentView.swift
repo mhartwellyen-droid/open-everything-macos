@@ -146,6 +146,19 @@ struct ContentView: View {
                     ) {
                         ExecutableLauncherView(url: url)
                             .id(url)
+                    } else if ["iso", "img"].contains(
+                        url.pathExtension.lowercased()
+                    ) {
+                        WindowsDiskImageView(url: url)
+                            .id(url)
+                    } else if ["deb", "rpm", "sh"].contains(
+                        url.pathExtension.lowercased()
+                    ) {
+                        LinuxFileView(url: url)
+                            .id(url)
+                    } else if url.pathExtension.lowercased() == "app" {
+                        LegacyMacAppView(url: url)
+                            .id(url)
                     } else if Model3DView.supportedExtensions.contains(
                         url.pathExtension.lowercased()
                     ) {

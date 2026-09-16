@@ -20,6 +20,7 @@ struct ExecutableLauncherView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 520)
+            RosettaRequirementView()
             Button("Run with compatibility app") {
                 status = launch()
             }
@@ -121,5 +122,43 @@ struct ExecutableLauncherView: View {
         case "CrossOver": return "com.codeweavers.CrossOver"
         default: return "org.winehq.wine"
         }
+    }
+}
+
+private struct RosettaRequirementView: View {
+    private let command = "softwareupdate --install-rosetta --agree-to-license"
+
+    var body: some View {
+        #if arch(arm64)
+        VStack(alignment: .leading, spacing: 8) {
+            Label(
+                rosettaInstalled ? "Rosetta 2 is installed" : "Rosetta 2 is required",
+                systemImage: rosettaInstalled ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+            )
+            .foregroundStyle(rosettaInstalled ? Color.green : Color.orange)
+            if !rosettaInstalled {
+                Text("Open Terminal, paste this command, and press Return:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(command)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+        #endif
+    }
+
+    private var rosettaInstalled: Bool {
+        FileManager.default.fileExists(
+            atPath: "/Library/Apple/usr/libexec/oah/libRosettaRuntime"
+        )
     }
 }

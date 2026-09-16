@@ -14,6 +14,10 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Windows installers, scripts, shortcuts, and DOS-style programs are routed appropriately for `.msi`, `.bat`, `.cmd`, `.com`, and `.lnk` files.
 - Any selected file can be exported as a standalone macOS `.app` wrapper with the file copied inside.
 - Selected files can be moved safely to Trash after confirmation.
+- Apple Silicon users see Rosetta 2 status plus a copyable installation command before launching Windows files.
+- Windows `.iso` and `.img` files can be mounted, then their `.exe` or `.msi` installers can be opened through the bundled Windows runtime.
+- Linux `.sh` scripts can run through the macOS shell after a safety confirmation; `.deb` and `.rpm` packages are identified with clear Linux-runtime guidance.
+- Legacy `.app` bundles show accurate guidance for 32-bit Mac applications, which require macOS Mojave or earlier and cannot be restored by Rosetta 2.
 
 ### NES controls
 
