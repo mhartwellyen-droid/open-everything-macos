@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject private var model: FileViewerModel
     @State private var tab = InspectorTab.preview
     @State private var dropActive = false
+    @State private var confirmDelete = false
 
     enum InspectorTab: String, CaseIterable, Identifiable {
         case preview = "Preview"
@@ -51,14 +52,39 @@ struct ContentView: View {
                     Label("Open", systemImage: "folder")
                 }
                 if model.selectedURL != nil {
+                    Button(action: model.makeSelectedFileApp) {
+                        Label("Make App", systemImage: "app.badge")
+                    }
                     Button(action: model.openWithDefaultApp) {
                         Label("Open With Default App", systemImage: "arrow.up.forward.app")
                     }
                     Button(action: model.revealInFinder) {
                         Label("Show in Finder", systemImage: "finder")
                     }
+                    Button(role: .destructive, action: { confirmDelete = true }) {
+                        Label("Move to Trash", systemImage: "trash")
+                    }
                 }
             }
+        }
+        .alert("Move this file to Trash?", isPresented: $confirmDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Move to Trash", role: .destructive) {
+                model.moveSelectedFileToTrash()
+            }
+        } message: {
+            Text(model.selectedURL?.lastPathComponent ?? "The selected file")
+        }
+        .alert(
+            "Open Everything",
+            isPresented: Binding(
+                get: { model.actionMessage != nil },
+                set: { if !$0 { model.actionMessage = nil } }
+            )
+        ) {
+            Button("OK") { model.actionMessage = nil }
+        } message: {
+            Text(model.actionMessage ?? "")
         }
     }
 
@@ -115,7 +141,9 @@ struct ContentView: View {
                     if url.pathExtension.lowercased() == "nes" {
                         NESPlayerView(romURL: url)
                             .id(url)
-                    } else if url.pathExtension.lowercased() == "exe" {
+                    } else if ExecutableLauncherView.supportedExtensions.contains(
+                        url.pathExtension.lowercased()
+                    ) {
                         ExecutableLauncherView(url: url)
                             .id(url)
                     } else if Model3DView.supportedExtensions.contains(

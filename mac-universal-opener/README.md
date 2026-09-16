@@ -11,6 +11,9 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.
 - Any file in its default installed Mac application.
 - Windows executables run through a bundled Wine Staging runtime. Apple Silicon Macs require Rosetta 2, and application compatibility varies.
+- Windows installers, scripts, shortcuts, and DOS-style programs are routed appropriately for `.msi`, `.bat`, `.cmd`, `.com`, and `.lnk` files.
+- Any selected file can be exported as a standalone macOS `.app` wrapper with the file copied inside.
+- Selected files can be moved safely to Trash after confirmation.
 
 ### NES controls
 

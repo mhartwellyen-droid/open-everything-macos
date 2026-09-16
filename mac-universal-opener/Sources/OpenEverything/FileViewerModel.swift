@@ -7,6 +7,7 @@ final class FileViewerModel: ObservableObject {
     @Published var selectedURL: URL?
     @Published var showImporter = false
     @Published var loadError: String?
+    @Published var actionMessage: String?
     @Published private(set) var recentURLs: [URL] = []
     private var securityScopedURLs: Set<URL> = []
 
@@ -29,6 +30,85 @@ final class FileViewerModel: ObservableObject {
     func openWithDefaultApp() {
         guard let selectedURL else { return }
         NSWorkspace.shared.open(selectedURL)
+    }
+
+    func makeSelectedFileApp() {
+        guard let selectedURL else { return }
+
+        let panel = NSSavePanel()
+        panel.title = "Make File into an App"
+        panel.prompt = "Create App"
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.nameFieldStringValue =
+            selectedURL.deletingPathExtension().lastPathComponent + ".app"
+        guard panel.runModal() == .OK, let appURL = panel.url else { return }
+
+        do {
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: appURL.path) {
+                try fileManager.removeItem(at: appURL)
+            }
+
+            let contents = appURL.appendingPathComponent("Contents", isDirectory: true)
+            let macOS = contents.appendingPathComponent("MacOS", isDirectory: true)
+            let resources = contents.appendingPathComponent("Resources", isDirectory: true)
+            try fileManager.createDirectory(at: macOS, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: resources, withIntermediateDirectories: true)
+
+            let payloadName = "payload." + selectedURL.pathExtension
+            let payload = resources.appendingPathComponent(payloadName)
+            try fileManager.copyItem(at: selectedURL, to: payload)
+
+            let launcher = macOS.appendingPathComponent("launch")
+            let script = """
+            #!/bin/sh
+            CONTENTS="$(cd "$(dirname "$0")/.." && pwd)"
+            open -b app.openeverything.viewer "$CONTENTS/Resources/\(payloadName)"
+            """
+            try script.write(to: launcher, atomically: true, encoding: .utf8)
+            try fileManager.setAttributes(
+                [.posixPermissions: 0o755],
+                ofItemAtPath: launcher.path
+            )
+
+            let plist: [String: Any] = [
+                "CFBundleDevelopmentRegion": "en",
+                "CFBundleDisplayName": appURL.deletingPathExtension().lastPathComponent,
+                "CFBundleExecutable": "launch",
+                "CFBundleIdentifier": "app.openeverything.wrapper.\(UUID().uuidString.lowercased())",
+                "CFBundleInfoDictionaryVersion": "6.0",
+                "CFBundleName": appURL.deletingPathExtension().lastPathComponent,
+                "CFBundlePackageType": "APPL",
+                "CFBundleShortVersionString": "1.0",
+                "CFBundleVersion": "1"
+            ]
+            let plistData = try PropertyListSerialization.data(
+                fromPropertyList: plist,
+                format: .xml,
+                options: 0
+            )
+            try plistData.write(to: contents.appendingPathComponent("Info.plist"))
+            actionMessage = "Created \(appURL.lastPathComponent). The original file was copied inside the app."
+        } catch {
+            actionMessage = "Couldn’t create the app: \(error.localizedDescription)"
+        }
+    }
+
+    func moveSelectedFileToTrash() {
+        guard let target = selectedURL else { return }
+        NSWorkspace.shared.recycle([target]) { [weak self] _, error in
+            Task { @MainActor in
+                guard let self else { return }
+                if let error {
+                    self.actionMessage = "Couldn’t move the file to Trash: \(error.localizedDescription)"
+                } else {
+                    self.recentURLs.removeAll { $0 == target }
+                    self.selectedURL = nil
+                    self.actionMessage = "\(target.lastPathComponent) was moved to Trash."
+                }
+            }
+        }
     }
 }
 

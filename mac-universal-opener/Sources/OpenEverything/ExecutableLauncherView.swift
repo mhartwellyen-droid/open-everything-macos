@@ -2,6 +2,10 @@ import AppKit
 import SwiftUI
 
 struct ExecutableLauncherView: View {
+    static let supportedExtensions: Set<String> = [
+        "bat", "cmd", "com", "exe", "lnk", "msi"
+    ]
+
     let url: URL
     @State private var status: String?
 
@@ -10,9 +14,9 @@ struct ExecutableLauncherView: View {
             Image(systemName: "macwindow.badge.plus")
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(.secondary)
-            Text("Windows executable")
+            Text("Windows file")
                 .font(.title2.weight(.semibold))
-            Text("macOS cannot run this file directly. Open Everything can hand it to an installed Windows compatibility app such as Whisky, CrossOver, or Wine.")
+            Text("Open Everything runs this file through its built-in Windows compatibility environment.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 520)
@@ -52,7 +56,7 @@ struct ExecutableLauncherView: View {
 
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/arch")
-                process.arguments = ["-x86_64", embeddedWine.path, url.path]
+                process.arguments = ["-x86_64", embeddedWine.path] + wineArguments
                 process.currentDirectoryURL = url.deletingLastPathComponent()
                 var environment = ProcessInfo.processInfo.environment
                 environment["WINEPREFIX"] = prefix.path
@@ -88,7 +92,7 @@ struct ExecutableLauncherView: View {
             do {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: wine)
-                process.arguments = [url.path]
+                process.arguments = wineArguments
                 try process.run()
                 return "Started with Wine."
             } catch {
@@ -96,6 +100,19 @@ struct ExecutableLauncherView: View {
             }
         }
         return "The built-in Windows runtime is missing. Reinstall Open Everything, or install Whisky, CrossOver, or Wine."
+    }
+
+    private var wineArguments: [String] {
+        switch url.pathExtension.lowercased() {
+        case "msi":
+            return ["msiexec", "/i", url.path]
+        case "bat", "cmd":
+            return ["cmd", "/c", url.path]
+        case "lnk":
+            return ["start", "/unix", url.path]
+        default:
+            return [url.path]
+        }
     }
 
     private func bundleID(for appName: String) -> String {
