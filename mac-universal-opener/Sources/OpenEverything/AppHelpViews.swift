@@ -17,7 +17,7 @@ struct UpdateCenterView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 440)
-            Button("Download Latest Version") {
+            Button("Open the Latest Release Download Page") {
                 NSWorkspace.shared.open(
                     URL(
                         string: "https://github.com/mhartwellyen-droid/open-everything-macos/releases/latest"
@@ -25,6 +25,13 @@ struct UpdateCenterView: View {
                 )
             }
             .buttonStyle(.borderedProminent)
+            .help("Opens GitHub Releases to download the newest DMG")
+            Link(
+                "View Open-Source Code (GPL-3.0)",
+                destination: URL(
+                    string: "https://github.com/mhartwellyen-droid/open-everything-macos"
+                )!
+            )
             Button("Close") { dismiss() }
         }
         .padding(30)

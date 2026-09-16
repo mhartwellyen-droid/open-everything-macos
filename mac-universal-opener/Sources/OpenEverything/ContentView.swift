@@ -52,24 +52,39 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(action: { model.showImporter = true }) {
-                    Label("Open", systemImage: "folder")
+                    Label("Choose a File to Open", systemImage: "folder")
                 }
+                .help("Choose a file to inspect in Open Everything")
                 Button(action: { showCompatibilityCenter = true }) {
-                    Label("Compatibility Center", systemImage: "checkmark.shield")
+                    Label("Check Compatibility and VM", systemImage: "checkmark.shield")
                 }
+                .help("Check Rosetta, Wine, and virtual-machine requirements")
                 Button(action: { showUpdates = true }) {
-                    Label("Updates", systemImage: "arrow.down.circle")
+                    Label("Get the Latest Version", systemImage: "arrow.down.circle")
                 }
+                .help("Open the newest Open Everything release")
                 if model.selectedURL != nil {
                     Button(action: model.makeSelectedFileApp) {
-                        Label("Make App", systemImage: "app.badge")
+                        Label("Create an App Copy of This File", systemImage: "app.badge")
                     }
+                    .help("Copies this file into a locally signed app wrapper")
                     Button(action: model.openWithDefaultApp) {
-                        Label("Open With Default App", systemImage: "arrow.up.forward.app")
+                        Label(
+                            isSelectedFileWindowsExecutable
+                                ? "Run This Windows File with Wine"
+                                : "Open with the Default Mac App",
+                            systemImage: "arrow.up.forward.app"
+                        )
                     }
+                    .help(
+                        isSelectedFileWindowsExecutable
+                            ? "Runs through Wine instead of asking macOS to execute the file"
+                            : "Opens this file in its associated macOS application"
+                    )
                     Button(action: model.revealInFinder) {
-                        Label("Show in Finder", systemImage: "finder")
+                        Label("Reveal the Original in Finder", systemImage: "finder")
                     }
+                    .help("Shows the original file without changing it")
                     Button {
                         if let url = model.selectedURL {
                             model.removeFromRecents(url)
@@ -77,6 +92,7 @@ struct ContentView: View {
                     } label: {
                         Label("Remove from Recents", systemImage: "trash")
                     }
+                    .help("Removes only this Recent entry; the Finder file is not deleted")
                 }
             }
         }
@@ -177,7 +193,10 @@ struct ContentView: View {
                     } else if ExecutableLauncherView.supportedExtensions.contains(
                         url.pathExtension.lowercased()
                     ) {
-                        ExecutableLauncherView(url: url)
+                        ExecutableLauncherView(
+                            url: url,
+                            runtime: model.windowsRuntime
+                        )
                             .id(url)
                     } else if ["iso", "img"].contains(
                         url.pathExtension.lowercased()
@@ -224,6 +243,13 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(dropActive ? Color.accentColor.opacity(0.12) : Color.clear)
         }
+    }
+
+    private var isSelectedFileWindowsExecutable: Bool {
+        guard let selectedURL = model.selectedURL else { return false }
+        return ExecutableLauncherView.supportedExtensions.contains(
+            selectedURL.pathExtension.lowercased()
+        )
     }
 }
 

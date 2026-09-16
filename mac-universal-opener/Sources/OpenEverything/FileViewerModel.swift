@@ -10,6 +10,7 @@ final class FileViewerModel: ObservableObject {
     @Published var actionMessage: String?
     @Published private(set) var recentURLs: [URL] = []
     private var securityScopedURLs: Set<URL> = []
+    let windowsRuntime = WindowsRuntimeManager()
 
     func open(_ url: URL) {
         if url.startAccessingSecurityScopedResource() {
@@ -33,6 +34,33 @@ final class FileViewerModel: ObservableObject {
 
     func openWithDefaultApp() {
         guard let selectedURL else { return }
+        if ExecutableLauncherView.supportedExtensions.contains(
+            selectedURL.pathExtension.lowercased()
+        ) {
+            guard windowsRuntime.isRosettaInstalled else {
+                actionMessage = """
+                Rosetta 2 is required to run Windows files through Wine on Apple Silicon.
+
+                Open Terminal and run:
+                softwareupdate --install-rosetta --agree-to-license
+
+                Then return to Open Everything and try again.
+                """
+                return
+            }
+            if windowsRuntime.isInstalled {
+                do {
+                    try windowsRuntime.run(selectedURL)
+                    actionMessage = windowsRuntime.status
+                } catch {
+                    actionMessage = "Couldn’t run the Windows file: \(error.localizedDescription)"
+                }
+            } else {
+                windowsRuntime.installAndRun(selectedURL)
+                actionMessage = "Downloading Wine support. Progress and status are shown in the Windows file panel."
+            }
+            return
+        }
         NSWorkspace.shared.open(selectedURL)
     }
 
@@ -93,7 +121,24 @@ final class FileViewerModel: ObservableObject {
                 options: 0
             )
             try plistData.write(to: contents.appendingPathComponent("Info.plist"))
-            actionMessage = "Created \(appURL.lastPathComponent). The original file was copied inside the app."
+
+            let signer = Process()
+            signer.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+            signer.arguments = ["--force", "--deep", "--sign", "-", appURL.path]
+            try signer.run()
+            signer.waitUntilExit()
+            guard signer.terminationStatus == 0 else {
+                throw NSError(
+                    domain: "OpenEverything.AppWrapper",
+                    code: Int(signer.terminationStatus),
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "macOS could not sign the generated app wrapper."
+                    ]
+                )
+            }
+
+            actionMessage = "Created and locally signed \(appURL.lastPathComponent). Opening it sends its copied file back to Open Everything; the original Finder file is unchanged."
         } catch {
             actionMessage = "Couldn’t create the app: \(error.localizedDescription)"
         }

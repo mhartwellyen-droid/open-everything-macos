@@ -14,8 +14,22 @@ final class WindowsRuntimeManager: ObservableObject {
         FileManager.default.isExecutableFile(atPath: wineExecutable.path)
     }
 
+    var isRosettaInstalled: Bool {
+        #if arch(arm64)
+        return FileManager.default.fileExists(
+            atPath: "/Library/Apple/usr/libexec/oah/libRosettaRuntime"
+        )
+        #else
+        return true
+        #endif
+    }
+
     func installAndRun(_ fileURL: URL) {
         guard !installing else { return }
+        guard isRosettaInstalled else {
+            status = "Rosetta 2 is required before Windows support can run. Install it with the command shown above, then try again."
+            return
+        }
         installing = true
         status = "Downloading Windows support (about 193 MB)…"
         Task {
@@ -31,6 +45,9 @@ final class WindowsRuntimeManager: ObservableObject {
     }
 
     func run(_ fileURL: URL) throws {
+        guard isRosettaInstalled else {
+            throw RuntimeError.rosettaRequired
+        }
         guard isInstalled else {
             installAndRun(fileURL)
             return
@@ -145,6 +162,7 @@ final class WindowsRuntimeManager: ObservableObject {
     enum RuntimeError: LocalizedError {
         case downloadFailed
         case extractionFailed
+        case rosettaRequired
 
         var errorDescription: String? {
             switch self {
@@ -152,6 +170,8 @@ final class WindowsRuntimeManager: ObservableObject {
                 return "The runtime download failed."
             case .extractionFailed:
                 return "The downloaded runtime could not be extracted."
+            case .rosettaRequired:
+                return "Rosetta 2 must be installed before Windows files can run."
             }
         }
     }
@@ -163,7 +183,7 @@ struct ExecutableLauncherView: View {
     ]
 
     let url: URL
-    @StateObject private var runtime = WindowsRuntimeManager()
+    @ObservedObject var runtime: WindowsRuntimeManager
 
     var body: some View {
         VStack(spacing: 18) {
@@ -179,8 +199,8 @@ struct ExecutableLauncherView: View {
             RosettaRequirementView()
             Button(
                 runtime.isInstalled
-                    ? "Run Windows File"
-                    : "Download Windows Support and Run"
+                    ? "Run This Windows File with Wine"
+                    : "Download Wine Support, Then Run This File"
             ) {
                 if runtime.isInstalled {
                     do {
@@ -194,6 +214,7 @@ struct ExecutableLauncherView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(runtime.installing)
+            .help("Runs this file through Wine; a Windows ISO is not required")
             if runtime.installing {
                 ProgressView()
                     .controlSize(.small)
@@ -204,10 +225,11 @@ struct ExecutableLauncherView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            Button("Use Full Windows VM Instead") {
+            Button("Open the Full Windows VM Instead") {
                 NotificationCenter.default.post(name: .openBuiltInVM, object: url)
             }
             .buttonStyle(.link)
+            .help("Starts a complete Windows guest installed from an ISO")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(30)

@@ -4,6 +4,10 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 
 It includes a custom icon displayed in Finder, the Dock, and Launchpad.
 
+Open Everything is free software released under the GNU General Public License
+version 3. Source code and releases are available at
+https://github.com/mhartwellyen-droid/open-everything-macos.
+
 ## What it opens
 
 - NES ROMs run directly in the bundled emulator, with video, audio, and keyboard controls.
@@ -28,6 +32,7 @@ It includes a custom icon displayed in Finder, the Dock, and Launchpad.
 - The VM screen explains that it unlocks complete guest desktops, Windows software beyond Wine, Linux packages and ELF programs, persistent storage, networking, and isolated testing.
 - The Updates screen opens the latest Open Everything release from inside the app.
 - First-launch help and a prominent DMG README explain how to resolve Gatekeeper’s damaged-app warning with a narrowly scoped `sudo xattr` command.
+- Toolbar actions have descriptive labels and help text, Windows files always route through Wine instead of macOS Launch Services, and generated app wrappers are locally signed.
 
 ### NES controls
 

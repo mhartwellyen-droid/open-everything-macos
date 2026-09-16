@@ -25,7 +25,9 @@ struct CompatibilityCenterView: View {
                     #if arch(arm64)
                     statusRow(
                         "Rosetta 2",
-                        rosettaInstalled ? "Installed" : "Optional for Intel Mac apps",
+                        rosettaInstalled
+                            ? "Installed"
+                            : "Required for Wine and Intel Mac apps",
                         rosettaInstalled
                     )
                     #endif
