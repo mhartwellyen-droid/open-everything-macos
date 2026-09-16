@@ -1,13 +1,169 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+final class WindowsRuntimeManager: ObservableObject {
+    @Published var installing = false
+    @Published var status: String?
+
+    private let runtimeURL = URL(
+        string: "https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.17/wine-staging-11.17-osx64.tar.xz"
+    )!
+
+    var isInstalled: Bool {
+        FileManager.default.isExecutableFile(atPath: wineExecutable.path)
+    }
+
+    func installAndRun(_ fileURL: URL) {
+        guard !installing else { return }
+        installing = true
+        status = "Downloading Windows support (about 193 MB)…"
+        Task {
+            do {
+                try await install()
+                installing = false
+                try run(fileURL)
+            } catch {
+                installing = false
+                status = "Windows support could not be installed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func run(_ fileURL: URL) throws {
+        guard isInstalled else {
+            installAndRun(fileURL)
+            return
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/arch")
+        process.arguments = ["-x86_64", wineExecutable.path]
+            + wineArguments(for: fileURL)
+        process.currentDirectoryURL = fileURL.deletingLastPathComponent()
+        var environment = ProcessInfo.processInfo.environment
+        environment["WINEPREFIX"] = winePrefix.path
+        environment["WINEDEBUG"] = "-all"
+        environment["PATH"] = wineExecutable.deletingLastPathComponent().path
+            + ":" + (environment["PATH"] ?? "/usr/bin:/bin")
+        process.environment = environment
+        try FileManager.default.createDirectory(
+            at: winePrefix,
+            withIntermediateDirectories: true
+        )
+        try process.run()
+        status = "Started \(fileURL.lastPathComponent). The first launch may take a minute while Windows support initializes."
+    }
+
+    private func install() async throws {
+        let (downloadedURL, response) = try await URLSession.shared.download(
+            from: runtimeURL
+        )
+        guard
+            let http = response as? HTTPURLResponse,
+            http.statusCode == 200
+        else {
+            throw RuntimeError.downloadFailed
+        }
+
+        let root = runtimeRoot
+        try await Task.detached {
+            let fileManager = FileManager.default
+            let work = root.deletingLastPathComponent()
+                .appendingPathComponent("WindowsRuntimeInstall", isDirectory: true)
+            let archive = work.appendingPathComponent("wine.tar.xz")
+            let extracted = work.appendingPathComponent("extracted", isDirectory: true)
+            try? fileManager.removeItem(at: work)
+            try fileManager.createDirectory(
+                at: extracted,
+                withIntermediateDirectories: true
+            )
+            try fileManager.moveItem(at: downloadedURL, to: archive)
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
+            process.arguments = ["-xf", archive.path, "-C", extracted.path]
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                throw RuntimeError.extractionFailed
+            }
+
+            let source = extracted
+                .appendingPathComponent("Wine Staging.app/Contents/Resources/wine")
+            try? fileManager.removeItem(at: root)
+            try fileManager.createDirectory(
+                at: root.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try fileManager.copyItem(at: source, to: root)
+            try? fileManager.removeItem(at: work)
+        }.value
+        status = "Windows support is installed."
+    }
+
+    private func wineArguments(for url: URL) -> [String] {
+        switch url.pathExtension.lowercased() {
+        case "msi":
+            return ["msiexec", "/i", url.path]
+        case "bat", "cmd":
+            return ["cmd", "/c", url.path]
+        case "lnk":
+            return ["start", "/unix", url.path]
+        default:
+            return [url.path]
+        }
+    }
+
+    private var applicationSupport: URL {
+        let base = try! FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        return base.appendingPathComponent("Open Everything", isDirectory: true)
+    }
+
+    private var runtimeRoot: URL {
+        applicationSupport.appendingPathComponent(
+            "WindowsRuntime",
+            isDirectory: true
+        )
+    }
+
+    private var wineExecutable: URL {
+        runtimeRoot.appendingPathComponent("bin/wine")
+    }
+
+    private var winePrefix: URL {
+        applicationSupport.appendingPathComponent(
+            "WinePrefix",
+            isDirectory: true
+        )
+    }
+
+    enum RuntimeError: LocalizedError {
+        case downloadFailed
+        case extractionFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .downloadFailed:
+                return "The runtime download failed."
+            case .extractionFailed:
+                return "The downloaded runtime could not be extracted."
+            }
+        }
+    }
+}
+
 struct ExecutableLauncherView: View {
     static let supportedExtensions: Set<String> = [
         "bat", "cmd", "com", "exe", "lnk", "msi"
     ]
 
     let url: URL
-    @State private var status: String?
+    @StateObject private var runtime = WindowsRuntimeManager()
 
     var body: some View {
         VStack(spacing: 18) {
@@ -16,25 +172,42 @@ struct ExecutableLauncherView: View {
                 .foregroundStyle(.secondary)
             Text("Windows file")
                 .font(.title2.weight(.semibold))
-            Text("Open Everything can open its built-in Windows virtual machine. Install Windows once from your own ISO, then run Windows files inside that VM.")
+            Text("Run this file directly through downloadable Windows compatibility support. A Windows ISO is not required.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 520)
             RosettaRequirementView()
-            Button("Open Built-in Windows VM") {
-                NotificationCenter.default.post(
-                    name: .openBuiltInVM,
-                    object: url
-                )
-                status = "Opening the built-in VM. The file’s folder will remain available in Finder for transfer into Windows."
+            Button(
+                runtime.isInstalled
+                    ? "Run Windows File"
+                    : "Download Windows Support and Run"
+            ) {
+                if runtime.isInstalled {
+                    do {
+                        try runtime.run(url)
+                    } catch {
+                        runtime.status = "Could not start: \(error.localizedDescription)"
+                    }
+                } else {
+                    runtime.installAndRun(url)
+                }
             }
             .buttonStyle(.borderedProminent)
-            if let status {
+            .disabled(runtime.installing)
+            if runtime.installing {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            if let status = runtime.status {
                 Text(status)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            Button("Use Full Windows VM Instead") {
+                NotificationCenter.default.post(name: .openBuiltInVM, object: url)
+            }
+            .buttonStyle(.link)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(30)

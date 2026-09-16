@@ -46,6 +46,36 @@ struct CompatibilityCenterView: View {
                     }
                     .buttonStyle(.borderedProminent)
 
+                    Text("What the VM unlocks")
+                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(
+                            "A complete Windows or Linux desktop",
+                            systemImage: "desktopcomputer"
+                        )
+                        Label(
+                            "Windows software that does not work through Wine",
+                            systemImage: "app.badge.checkmark"
+                        )
+                        Label(
+                            "Linux DEB, RPM, AppImage, and native ELF software",
+                            systemImage: "shippingbox"
+                        )
+                        Label(
+                            "Bootable ISO and IMG installation media",
+                            systemImage: "opticaldisc"
+                        )
+                        Label(
+                            "Persistent virtual storage and NAT internet access",
+                            systemImage: "externaldrive.connected.to.line.below"
+                        )
+                        Label(
+                            "An isolated environment for testing untrusted software",
+                            systemImage: "lock.shield"
+                        )
+                    }
+                    .font(.callout)
+
                     #if arch(arm64)
                     Divider()
                     Text("Rosetta 2 command")
@@ -72,6 +102,33 @@ struct CompatibilityCenterView: View {
                         .font(.headline)
                     Text("Apple Silicon Macs require ARM64 Windows or Linux images. Intel Macs require x86-64 images. The built-in VM does not emulate a different processor architecture and does not include an operating-system license.")
                         .foregroundStyle(.secondary)
+
+                    Divider()
+                    Text("How to get an ISO")
+                        .font(.headline)
+                    Text("You do not need an ISO to run ordinary EXE or MSI files. Use an ISO only when you want a complete Windows or Linux virtual machine.")
+                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("1. Choose the download that matches your Mac: ARM64 for Apple Silicon or x86-64 for Intel.")
+                        Text("2. Download the ISO directly from Microsoft or your Linux distribution.")
+                        Text("3. Open Built-in VM, choose Windows or Linux, select the ISO, and press Start.")
+                        Text("4. Complete the operating-system installer inside the VM.")
+                    }
+                    .font(.callout)
+                    HStack {
+                        Link(
+                            "Download Windows 11",
+                            destination: URL(
+                                string: "https://www.microsoft.com/software-download/windows11"
+                            )!
+                        )
+                        Link(
+                            "Download Ubuntu",
+                            destination: URL(
+                                string: "https://ubuntu.com/download/desktop"
+                            )!
+                        )
+                    }
                 }
                 .padding(24)
             }

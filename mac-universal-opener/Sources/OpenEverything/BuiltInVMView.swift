@@ -208,6 +208,34 @@ struct BuiltInVMView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 540)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("This VM unlocks:")
+                            .font(.headline)
+                        Label(
+                            "A complete \(controller.guest.rawValue) desktop",
+                            systemImage: "desktopcomputer"
+                        )
+                        Label(
+                            controller.guest == .windows
+                                ? "Windows apps, installers, and system tools"
+                                : "DEB, RPM, AppImage, and native Linux programs",
+                            systemImage: "app.badge.checkmark"
+                        )
+                        Label(
+                            "Persistent storage, internet access, keyboard, and mouse",
+                            systemImage: "externaldrive.connected.to.line.below"
+                        )
+                        Label(
+                            "Isolation from your main macOS environment",
+                            systemImage: "lock.shield"
+                        )
+                    }
+                    .font(.callout)
+                    .padding()
+                    .background(
+                        .quaternary,
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

@@ -23,6 +23,9 @@ It includes a custom icon displayed in Finder, the Dock, and Launchpad.
 - The Compatibility Center reports Mac architecture, Rosetta 2, and native VM readiness.
 - The built-in VM creates persistent Linux or Windows guests from user-supplied, architecture-compatible ISO or IMG files.
 - Removing the bundled Wine runtime reduces the installer by hundreds of megabytes; guest operating systems are installed on demand.
+- EXE, MSI, BAT, CMD, COM, and LNK files can install a Wine runtime on first use and run directly without a Windows ISO; the app installer remains lightweight.
+- The Compatibility Center includes an ISO tutorial and official Windows and Ubuntu download links for users who want a full VM.
+- The VM screen explains that it unlocks complete guest desktops, Windows software beyond Wine, Linux packages and ELF programs, persistent storage, networking, and isolated testing.
 
 ### NES controls
 
