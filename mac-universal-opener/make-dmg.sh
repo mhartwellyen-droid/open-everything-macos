@@ -80,6 +80,13 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
       --title "Open Everything $VERSION" \
       --notes "Includes built-in Linux and Windows virtual machines using Apple Virtualization, NES emulation, native 3D viewing, app wrappers, and safe Trash deletion."
   gh release upload "$TAG" "$DMG_PATH" --clobber
+
+  git config user.name "Open Everything Build"
+  git config user.email "actions@users.noreply.github.com"
+  git checkout -B dmg-output
+  git add -f "$DMG_PATH"
+  git commit -m "Publish Open Everything $VERSION DMG"
+  git push --force origin HEAD:dmg-output
 fi
 
 echo "Created: $DMG_PATH"
