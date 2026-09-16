@@ -92,22 +92,45 @@ final class FileViewerModel: ObservableObject {
             let payload = resources.appendingPathComponent(payloadName)
             try fileManager.copyItem(at: selectedURL, to: payload)
 
-            let launcher = macOS.appendingPathComponent("launch")
-            let script = """
-            #!/bin/sh
-            CONTENTS="$(cd "$(dirname "$0")/.." && pwd)"
-            open -b app.openeverything.viewer "$CONTENTS/Resources/\(payloadName)"
-            """
-            try script.write(to: launcher, atomically: true, encoding: .utf8)
-            try fileManager.setAttributes(
-                [.posixPermissions: 0o755],
-                ofItemAtPath: launcher.path
+            guard let sourceExecutable = Bundle.main.executableURL else {
+                throw NSError(
+                    domain: "OpenEverything.AppWrapper",
+                    code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "The Open Everything executable could not be located."
+                    ]
+                )
+            }
+            let wrapperExecutable = macOS.appendingPathComponent("OpenEverything")
+            try fileManager.copyItem(
+                at: sourceExecutable,
+                to: wrapperExecutable
             )
+
+            for resourceName in [
+                "AppIcon.icns",
+                "jsnes.min.js",
+                "JSNES-LICENSE.txt"
+            ] {
+                guard
+                    let sourceResource = Bundle.main.resourceURL?
+                        .appendingPathComponent(resourceName),
+                    fileManager.fileExists(atPath: sourceResource.path)
+                else {
+                    continue
+                }
+                try fileManager.copyItem(
+                    at: sourceResource,
+                    to: resources.appendingPathComponent(resourceName)
+                )
+            }
 
             let plist: [String: Any] = [
                 "CFBundleDevelopmentRegion": "en",
                 "CFBundleDisplayName": appURL.deletingPathExtension().lastPathComponent,
-                "CFBundleExecutable": "launch",
+                "CFBundleExecutable": "OpenEverything",
+                "CFBundleIconFile": "AppIcon",
                 "CFBundleIdentifier": "app.openeverything.wrapper.\(UUID().uuidString.lowercased())",
                 "CFBundleInfoDictionaryVersion": "6.0",
                 "CFBundleName": appURL.deletingPathExtension().lastPathComponent,
@@ -138,7 +161,7 @@ final class FileViewerModel: ObservableObject {
                 )
             }
 
-            actionMessage = "Created and locally signed \(appURL.lastPathComponent). Opening it sends its copied file back to Open Everything; the original Finder file is unchanged."
+            actionMessage = "Created and locally signed \(appURL.lastPathComponent). It contains its own Open Everything executable and a copy of the selected file, so it can open the Windows launcher directly."
         } catch {
             actionMessage = "Couldn’t create the app: \(error.localizedDescription)"
         }
