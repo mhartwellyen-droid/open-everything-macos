@@ -13,7 +13,7 @@ struct UpdateCenterView: View {
                 .font(.title2.weight(.semibold))
             Text("Installed version: \(currentVersion)")
                 .foregroundStyle(.secondary)
-            Text("Download the newest signed DMG from the project’s Releases page. GitHub may ask you to sign in because the repository is private.")
+            Text("Download the newest DMG from the public project Releases page. You can also review the complete GPL-3.0 source code.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 440)
