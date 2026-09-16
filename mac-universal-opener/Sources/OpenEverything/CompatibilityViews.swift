@@ -19,6 +19,9 @@ struct WindowsDiskImageView: View {
                 status = mountImage()
             }
             .buttonStyle(.borderedProminent)
+            Button("Use with Virtual Machine") {
+                status = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
+            }
             if let status {
                 Text(status)
                     .font(.callout)
@@ -87,6 +90,9 @@ struct LinuxFileView: View {
             Button("Show in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             }
+            Button("Open Linux Virtual Machine") {
+                status = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
+            }
             if let status {
                 Text(status)
                     .font(.callout)
@@ -149,6 +155,9 @@ struct LegacyMacAppView: View {
                 .frame(maxWidth: 580)
             Button("Show App in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+            Button("Open Legacy macOS Virtual Machine") {
+                _ = VirtualMachineSupport.openForVirtualMachine(fileURL: url)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var tab = InspectorTab.preview
     @State private var dropActive = false
     @State private var confirmDelete = false
+    @State private var showCompatibilityCenter = false
 
     enum InspectorTab: String, CaseIterable, Identifiable {
         case preview = "Preview"
@@ -51,6 +52,9 @@ struct ContentView: View {
                 Button(action: { model.showImporter = true }) {
                     Label("Open", systemImage: "folder")
                 }
+                Button(action: { showCompatibilityCenter = true }) {
+                    Label("Compatibility Center", systemImage: "checkmark.shield")
+                }
                 if model.selectedURL != nil {
                     Button(action: model.makeSelectedFileApp) {
                         Label("Make App", systemImage: "app.badge")
@@ -85,6 +89,10 @@ struct ContentView: View {
             Button("OK") { model.actionMessage = nil }
         } message: {
             Text(model.actionMessage ?? "")
+        }
+        .sheet(isPresented: $showCompatibilityCenter) {
+            CompatibilityCenterView()
+                .frame(minWidth: 620, minHeight: 560)
         }
     }
 

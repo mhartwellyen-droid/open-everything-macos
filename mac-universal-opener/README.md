@@ -18,6 +18,8 @@ A native macOS file viewer built with SwiftUI, AppKit, Quick Look, and Uniform T
 - Windows `.iso` and `.img` files can be mounted, then their `.exe` or `.msi` installers can be opened through the bundled Windows runtime.
 - Linux `.sh` scripts can run through the macOS shell after a safety confirmation; `.deb` and `.rpm` packages are identified with clear Linux-runtime guidance.
 - Legacy `.app` bundles show accurate guidance for 32-bit Mac applications, which require macOS Mojave or earlier and cannot be restored by Rosetta 2.
+- The Compatibility Center reports Mac architecture, Rosetta 2, bundled Wine health, and installed virtualization apps.
+- VM handoff supports installed UTM, VMware Fusion, Parallels Desktop, and VirtualBox for Windows/Linux images and legacy environments.
 
 ### NES controls
 
