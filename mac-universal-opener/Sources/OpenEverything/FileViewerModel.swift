@@ -92,27 +92,27 @@ final class FileViewerModel: ObservableObject {
             let payload = resources.appendingPathComponent(payloadName)
             try fileManager.copyItem(at: selectedURL, to: payload)
 
-            guard let sourceExecutable = Bundle.main.executableURL else {
+            guard
+                let sourceLauncher = Bundle.main.resourceURL?
+                    .appendingPathComponent("WrapperLauncher"),
+                fileManager.fileExists(atPath: sourceLauncher.path)
+            else {
                 throw NSError(
                     domain: "OpenEverything.AppWrapper",
                     code: 1,
                     userInfo: [
                         NSLocalizedDescriptionKey:
-                            "The Open Everything executable could not be located."
+                            "The standalone Windows launcher could not be located."
                     ]
                 )
             }
-            let wrapperExecutable = macOS.appendingPathComponent("OpenEverything")
+            let wrapperExecutable = macOS.appendingPathComponent("Launcher")
             try fileManager.copyItem(
-                at: sourceExecutable,
+                at: sourceLauncher,
                 to: wrapperExecutable
             )
 
-            for resourceName in [
-                "AppIcon.icns",
-                "jsnes.min.js",
-                "JSNES-LICENSE.txt"
-            ] {
+            for resourceName in ["AppIcon.icns"] {
                 guard
                     let sourceResource = Bundle.main.resourceURL?
                         .appendingPathComponent(resourceName),
@@ -129,7 +129,7 @@ final class FileViewerModel: ObservableObject {
             let plist: [String: Any] = [
                 "CFBundleDevelopmentRegion": "en",
                 "CFBundleDisplayName": appURL.deletingPathExtension().lastPathComponent,
-                "CFBundleExecutable": "OpenEverything",
+                "CFBundleExecutable": "Launcher",
                 "CFBundleIconFile": "AppIcon",
                 "CFBundleIdentifier": "app.openeverything.wrapper.\(UUID().uuidString.lowercased())",
                 "CFBundleInfoDictionaryVersion": "6.0",
@@ -161,7 +161,7 @@ final class FileViewerModel: ObservableObject {
                 )
             }
 
-            actionMessage = "Created and locally signed \(appURL.lastPathComponent). It contains its own Open Everything executable and a copy of the selected file, so it can open the Windows launcher directly."
+            actionMessage = "Created and locally signed \(appURL.lastPathComponent). It runs its embedded Windows file directly and does not reopen Open Everything."
         } catch {
             actionMessage = "Couldn’t create the app: \(error.localizedDescription)"
         }

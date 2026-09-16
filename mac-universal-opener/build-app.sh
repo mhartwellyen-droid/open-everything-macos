@@ -18,6 +18,8 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/OpenEverything" "$APP_DIR/Contents/MacOS/OpenEverything"
 cp "Sources/OpenEverything/Resources/jsnes.min.js" "$APP_DIR/Contents/Resources/"
 cp "Sources/OpenEverything/Resources/JSNES-LICENSE.txt" "$APP_DIR/Contents/Resources/"
+cp ".build/release/OpenEverythingWrapperLauncher" \
+  "$APP_DIR/Contents/Resources/WrapperLauncher"
 
 ICON_SOURCE="Sources/OpenEverything/Resources/AppIcon.png"
 ICONSET="$OUTPUT_DIR/AppIcon.iconset"
@@ -58,7 +60,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.12.0</string>
+    <string>1.13.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

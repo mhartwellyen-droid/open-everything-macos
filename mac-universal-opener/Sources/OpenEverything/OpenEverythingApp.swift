@@ -34,10 +34,6 @@ struct OpenEverythingApp: App {
                     appDelegate.openHandler = { url in
                         Task { @MainActor in model.open(url) }
                     }
-                    if model.selectedURL == nil,
-                       let payloadURL = bundledPayloadURL {
-                        model.open(payloadURL)
-                    }
                     if !didShowGatekeeperHelp {
                         showGatekeeperHelp = true
                     }
@@ -59,18 +55,4 @@ struct OpenEverythingApp: App {
         }
     }
 
-    private var bundledPayloadURL: URL? {
-        guard
-            let resources = Bundle.main.resourceURL,
-            let contents = try? FileManager.default.contentsOfDirectory(
-                at: resources,
-                includingPropertiesForKeys: nil
-            )
-        else {
-            return nil
-        }
-        return contents.first {
-            $0.lastPathComponent.hasPrefix("payload.")
-        }
-    }
 }
