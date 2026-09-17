@@ -78,7 +78,8 @@ cd mac-universal-opener
 sh make-dmg.sh
 ```
 
-The finished installer will be at `OpenEverything-1.0.0.dmg`. Open it, then
+The finished installer will be named from the value in `VERSION`, for example
+`OpenEverything-1.15.0.dmg`. Open it, then
 drag **Open Everything** into **Applications**.
 
 Before publishing a release, complete the physical Apple Silicon EXE launch

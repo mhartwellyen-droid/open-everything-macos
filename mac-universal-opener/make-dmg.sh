@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.15.0"
+VERSION=$(cat VERSION)
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -18,6 +18,20 @@ REQUIRE_NOTARIZATION="${REQUIRE_NOTARIZATION:-0}"
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "This script must be run on macOS. Apple’s Swift compiler and hdiutil are required." >&2
+  exit 1
+fi
+
+case "$VERSION" in
+  ''|*[!0-9.]*|.*|*.)
+    echo "VERSION must contain a dotted numeric version such as 1.15.0." >&2
+    exit 1
+    ;;
+esac
+
+if [ -n "${GITHUB_REF_NAME:-}" ] \
+  && [ "${GITHUB_REF_TYPE:-}" = "tag" ] \
+  && [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+  echo "Release tag $GITHUB_REF_NAME does not match VERSION $VERSION." >&2
   exit 1
 fi
 

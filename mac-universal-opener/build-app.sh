@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
+VERSION=$(cat VERSION)
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 SIGNING_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
@@ -46,7 +47,7 @@ cp "$ICON_SOURCE" "$ICONSET/icon_512x512@2x.png"
 iconutil -c icns "$ICONSET" -o "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 
-cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
+cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -68,7 +69,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.15.0</string>
+    <string>$VERSION</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
