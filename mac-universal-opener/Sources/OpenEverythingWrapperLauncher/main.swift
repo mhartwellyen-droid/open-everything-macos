@@ -284,8 +284,10 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
     }
 }
 
-let application = NSApplication.shared
-let launcher = WrapperLauncher()
-application.delegate = launcher
-application.setActivationPolicy(.regular)
-application.run()
+MainActor.assumeIsolated {
+    let application = NSApplication.shared
+    let launcher = WrapperLauncher()
+    application.delegate = launcher
+    application.setActivationPolicy(.regular)
+    application.run()
+}
