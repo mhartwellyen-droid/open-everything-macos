@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.13.1"
+VERSION="1.14.0"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"

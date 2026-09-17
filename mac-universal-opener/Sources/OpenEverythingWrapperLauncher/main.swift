@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 
-@main
 @MainActor
 final class WrapperLauncher: NSObject, NSApplicationDelegate {
     private let rosettaCommand =
@@ -17,6 +16,7 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        showProgress("Preparing Windows app…")
         Task { await start() }
     }
 
@@ -283,3 +283,9 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
         }
     }
 }
+
+let application = NSApplication.shared
+let launcher = WrapperLauncher()
+application.delegate = launcher
+application.setActivationPolicy(.regular)
+application.run()

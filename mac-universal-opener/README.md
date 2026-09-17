@@ -33,6 +33,7 @@ https://github.com/mhartwellyen-droid/open-everything-macos.
 - The Updates screen opens the latest Open Everything release from inside the app.
 - First-launch help and a prominent DMG README explain how to resolve Gatekeeper’s damaged-app warning with a narrowly scoped `sudo xattr` command.
 - Toolbar actions have descriptive labels and help text, Windows files always route through Wine instead of macOS Launch Services, and generated app wrappers contain a dedicated native launcher that runs their embedded Windows file without reopening Open Everything.
+- The standalone launcher owns an explicit AppKit event loop and displays a preparation window immediately, preventing silent startup exits.
 
 ### NES controls
 
