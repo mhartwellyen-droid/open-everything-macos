@@ -20,6 +20,14 @@ cp "Sources/OpenEverything/Resources/jsnes.min.js" "$APP_DIR/Contents/Resources/
 cp "Sources/OpenEverything/Resources/JSNES-LICENSE.txt" "$APP_DIR/Contents/Resources/"
 cp ".build/release/OpenEverythingWrapperLauncher" \
   "$APP_DIR/Contents/Resources/WrapperLauncher"
+test -x "$APP_DIR/Contents/Resources/WrapperLauncher" || {
+  echo "WrapperLauncher is missing or is not executable." >&2
+  exit 1
+}
+file "$APP_DIR/Contents/Resources/WrapperLauncher" | grep -q "Mach-O" || {
+  echo "WrapperLauncher is not a Mach-O executable." >&2
+  exit 1
+}
 
 ICON_SOURCE="Sources/OpenEverything/Resources/AppIcon.png"
 ICONSET="$OUTPUT_DIR/AppIcon.iconset"
@@ -60,7 +68,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.14.0</string>
+    <string>1.15.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
@@ -103,13 +111,27 @@ if [ -n "$SIGNING_IDENTITY" ]; then
   echo "Signing $BUNDLE_NAME with Developer ID…"
   codesign \
     --force \
-    --deep \
+    --options runtime \
+    --timestamp \
+    --sign "$SIGNING_IDENTITY" \
+    "$APP_DIR/Contents/Resources/WrapperLauncher"
+  codesign \
+    --force \
+    --options runtime \
+    --timestamp \
+    --entitlements "$OUTPUT_DIR/OpenEverything.entitlements" \
+    --sign "$SIGNING_IDENTITY" \
+    "$APP_DIR/Contents/MacOS/OpenEverything"
+  codesign \
+    --force \
     --options runtime \
     --timestamp \
     --entitlements "$OUTPUT_DIR/OpenEverything.entitlements" \
     --sign "$SIGNING_IDENTITY" \
     "$APP_DIR"
 
+  codesign --verify --strict --verbose=2 "$APP_DIR/Contents/Resources/WrapperLauncher"
+  codesign --verify --strict --verbose=2 "$APP_DIR/Contents/MacOS/OpenEverything"
   codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 elif [ "$REQUIRE_SIGNING" = "1" ]; then
   echo "DEVELOPER_ID_APPLICATION is required when REQUIRE_SIGNING=1." >&2
@@ -124,6 +146,17 @@ else
     "$APP_DIR"
   codesign --verify --deep --strict --verbose=2 "$APP_DIR"
 fi
+
+test -x "$APP_DIR/Contents/MacOS/OpenEverything" || {
+  echo "OpenEverything is missing or is not executable." >&2
+  exit 1
+}
+test -s "$APP_DIR/Contents/Resources/WrapperLauncher" || {
+  echo "The generated-app launcher is empty." >&2
+  exit 1
+}
+plutil -lint "$APP_DIR/Contents/Info.plist"
+test "$(defaults read "$APP_DIR/Contents/Info" CFBundleExecutable)" = "OpenEverything"
 
 echo "Built: $APP_DIR"
 echo "You can drag it into your Applications folder."

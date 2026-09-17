@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Open Everything"
 BUNDLE_NAME="OpenEverything.app"
-VERSION="1.14.0"
+VERSION="1.15.0"
 OUTPUT_DIR="$PWD/dist"
 APP_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
 DMG_PATH="$PWD/OpenEverything-$VERSION.dmg"
@@ -14,6 +14,7 @@ SIGNING_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
 APPLE_ID="${APPLE_ID:-}"
 APPLE_TEAM_ID="${APPLE_TEAM_ID:-}"
 APPLE_APP_SPECIFIC_PASSWORD="${APPLE_APP_SPECIFIC_PASSWORD:-}"
+REQUIRE_NOTARIZATION="${REQUIRE_NOTARIZATION:-0}"
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "This script must be run on macOS. Apple’s Swift compiler and hdiutil are required." >&2
@@ -75,6 +76,9 @@ if [ -n "$SIGNING_IDENTITY" ]; then
     xcrun stapler staple "$DMG_PATH"
     xcrun stapler validate "$DMG_PATH"
     spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
+  elif [ "$REQUIRE_NOTARIZATION" = "1" ]; then
+    echo "Apple notarization credentials are required when REQUIRE_NOTARIZATION=1." >&2
+    exit 1
   else
     echo "Apple notarization credentials are absent; delivering a signed, unnotarized DMG."
   fi

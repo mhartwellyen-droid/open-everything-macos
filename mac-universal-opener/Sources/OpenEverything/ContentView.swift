@@ -190,6 +190,11 @@ struct ContentView: View {
                     if url.pathExtension.lowercased() == "nes" {
                         NESPlayerView(romURL: url)
                             .id(url)
+                    } else if ArchiveBrowserView.supportedExtensions.contains(
+                        url.pathExtension.lowercased()
+                    ) {
+                        ArchiveBrowserView(url: url)
+                            .id(url)
                     } else if ExecutableLauncherView.supportedExtensions.contains(
                         url.pathExtension.lowercased()
                     ) {

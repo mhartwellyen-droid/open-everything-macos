@@ -13,6 +13,7 @@ https://github.com/mhartwellyen-droid/open-everything-macos.
 - NES ROMs run directly in the bundled emulator, with video, audio, and keyboard controls.
 - 3D models open in an interactive native viewer with orbit, pan, and zoom controls. Supported formats include OBJ, STL, PLY, DAE, 3DS, Alembic, SceneKit, and USD/USDZ variants.
 - Any format supported by macOS Quick Look, including common images, PDFs, audio, video, Office/iWork documents, fonts, 3D assets, and many archives.
+- ZIP, 7Z, RAR, TAR, GZIP, BZIP2, and XZ-family archives open in a native content browser with safe-path validation and Extract All to a chosen folder.
 - Text and source-code files in a selectable raw-text view.
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.
 - Any file in its default installed Mac application.
@@ -31,7 +32,7 @@ https://github.com/mhartwellyen-droid/open-everything-macos.
 - The Compatibility Center includes an ISO tutorial and official Windows and Ubuntu download links for users who want a full VM.
 - The VM screen explains that it unlocks complete guest desktops, Windows software beyond Wine, Linux packages and ELF programs, persistent storage, networking, and isolated testing.
 - The Updates screen opens the latest Open Everything release from inside the app.
-- First-launch help and a prominent DMG README explain how to resolve Gatekeeper’s damaged-app warning with a narrowly scoped `sudo xattr` command.
+- Releases are Developer ID signed and notarized so Gatekeeper can open them normally; first-launch help and the DMG README keep the narrowly scoped `sudo xattr` command only as fallback troubleshooting.
 - Toolbar actions have descriptive labels and help text, Windows files always route through Wine instead of macOS Launch Services, and generated app wrappers contain a dedicated native launcher that runs their embedded Windows file without reopening Open Everything.
 - The standalone launcher owns an explicit AppKit event loop and displays a preparation window immediately, preventing silent startup exits.
 
@@ -79,6 +80,11 @@ sh make-dmg.sh
 
 The finished installer will be at `OpenEverything-1.0.0.dmg`. Open it, then
 drag **Open Everything** into **Applications**.
+
+Before publishing a release, complete the physical Apple Silicon EXE launch
+check in [`APPLE-SILICON-EXE-RELEASE-CHECK.md`](APPLE-SILICON-EXE-RELEASE-CHECK.md).
+The build validates bundle structure and signatures, while the checklist verifies
+the Rosetta, Wine installation, and real EXE launch flows that CI cannot emulate.
 
 ## Privacy
 
