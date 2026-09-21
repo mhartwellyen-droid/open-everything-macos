@@ -14,12 +14,23 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OpenEverything",
+            dependencies: ["LauncherDiagnostics"],
             path: "Sources/OpenEverything",
             exclude: ["Resources"]
         ),
         .executableTarget(
             name: "OpenEverythingWrapperLauncher",
+            dependencies: ["LauncherDiagnostics"],
             path: "Sources/OpenEverythingWrapperLauncher"
+        ),
+        .target(
+            name: "LauncherDiagnostics",
+            path: "Sources/LauncherDiagnostics"
+        ),
+        .testTarget(
+            name: "OpenEverythingTests",
+            dependencies: ["OpenEverything"],
+            path: "Tests/OpenEverythingTests"
         )
     ]
 )
