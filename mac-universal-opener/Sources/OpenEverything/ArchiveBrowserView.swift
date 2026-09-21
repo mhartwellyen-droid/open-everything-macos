@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 import SwiftUI
 
@@ -180,34 +181,46 @@ final class ArchiveBrowserModel: ObservableObject {
 }
 
 enum ArchiveService {
-    static func list(_ archiveURL: URL) async throws -> [String] {
+    static let diagnosticCaptureLimit = 256 * 1024
+    private static let commandTimeout: TimeInterval = 30
+    typealias CommandRunner = (
+        _ executable: String,
+        _ arguments: [String],
+        _ timeout: TimeInterval,
+        _ standardOutput: URL?
+    ) -> CommandResult
+
+    static func list(
+        _ archiveURL: URL,
+        runner: @escaping CommandRunner = run
+    ) async throws -> [String] {
         try await Task.detached(priority: .userInitiated) {
             let fileExtension = archiveURL.pathExtension.lowercased()
-            var result = run(
+            if ["gz", "bz2", "xz"].contains(fileExtension) {
+                return [
+                    archiveURL.deletingPathExtension().lastPathComponent
+                ]
+            }
+
+            var result = invoke(
                 executable: "/usr/bin/tar",
-                arguments: ["-tf", archiveURL.path]
+                arguments: ["-tf", archiveURL.path],
+                runner: runner
             )
 
             if result.status != 0 && fileExtension == "zip" {
-                result = run(
+                result = invoke(
                     executable: "/usr/bin/unzip",
-                    arguments: ["-Z1", archiveURL.path]
+                    arguments: ["-Z1", archiveURL.path],
+                    runner: runner
                 )
-            }
-
-            if result.status != 0,
-               ["gz", "bz2", "xz"].contains(fileExtension) {
-                let name = archiveURL.deletingPathExtension()
-                    .lastPathComponent
-                return [name]
             }
 
             guard result.status == 0 else {
                 throw ArchiveError.commandFailed(
-                    readableError(
-                        result.error,
-                        fallback:
-                            "This archive may be encrypted, damaged, or use a method unavailable in this macOS version."
+                    archiveFailureMessage(
+                        action: "read",
+                        detail: result.error
                     )
                 )
             }
@@ -217,52 +230,56 @@ enum ArchiveService {
                 .map(String.init)
                 .filter { !$0.isEmpty }
             try validate(entries)
+            try validateLinks(in: archiveURL, entries: entries, runner: runner)
             return entries
         }.value
     }
 
     static func extract(
         _ archiveURL: URL,
-        to destination: URL
+        to destination: URL,
+        runner: @escaping CommandRunner = run
     ) async throws {
         try await Task.detached(priority: .userInitiated) {
-            let entries = try listSynchronously(archiveURL)
+            let entries = try listSynchronously(archiveURL, runner: runner)
             try validate(entries)
 
             let fileExtension = archiveURL.pathExtension.lowercased()
-            var result = run(
-                executable: "/usr/bin/tar",
-                arguments: [
-                    "-xf", archiveURL.path,
-                    "-C", destination.path
-                ]
-            )
-
-            if result.status != 0 && fileExtension == "zip" {
-                result = run(
-                    executable: "/usr/bin/ditto",
-                    arguments: [
-                        "-x", "-k", archiveURL.path, destination.path
-                    ]
-                )
-            }
-
-            if result.status != 0,
-               ["gz", "bz2", "xz"].contains(fileExtension) {
+            if ["gz", "bz2", "xz"].contains(fileExtension) {
                 try decompressSingleFile(
                     archiveURL,
                     to: destination,
-                    fileExtension: fileExtension
+                    runner: runner
                 )
                 return
             }
 
+            try validateLinks(in: archiveURL, entries: entries, runner: runner)
+
+            var result = invoke(
+                executable: "/usr/bin/tar",
+                arguments: [
+                    "-xf", archiveURL.path,
+                    "-C", destination.path
+                ],
+                runner: runner
+            )
+
+            if result.status != 0 && fileExtension == "zip" {
+                result = invoke(
+                    executable: "/usr/bin/ditto",
+                    arguments: [
+                        "-x", "-k", archiveURL.path, destination.path
+                    ],
+                    runner: runner
+                )
+            }
+
             guard result.status == 0 else {
                 throw ArchiveError.commandFailed(
-                    readableError(
-                        result.error,
-                        fallback:
-                            "macOS could not extract this archive. It may be encrypted, damaged, or use an unsupported compression method."
+                    archiveFailureMessage(
+                        action: "extract",
+                        detail: result.error
                     )
                 )
             }
@@ -270,30 +287,33 @@ enum ArchiveService {
     }
 
     private static func listSynchronously(
-        _ archiveURL: URL
+        _ archiveURL: URL,
+        runner: CommandRunner
     ) throws -> [String] {
         let fileExtension = archiveURL.pathExtension.lowercased()
-        var result = run(
-            executable: "/usr/bin/tar",
-            arguments: ["-tf", archiveURL.path]
-        )
-        if result.status != 0 && fileExtension == "zip" {
-            result = run(
-                executable: "/usr/bin/unzip",
-                arguments: ["-Z1", archiveURL.path]
-            )
-        }
-        if result.status != 0,
-           ["gz", "bz2", "xz"].contains(fileExtension) {
+        if ["gz", "bz2", "xz"].contains(fileExtension) {
             return [
                 archiveURL.deletingPathExtension().lastPathComponent
             ]
         }
+
+        var result = invoke(
+            executable: "/usr/bin/tar",
+            arguments: ["-tf", archiveURL.path],
+            runner: runner
+        )
+        if result.status != 0 && fileExtension == "zip" {
+            result = invoke(
+                executable: "/usr/bin/unzip",
+                arguments: ["-Z1", archiveURL.path],
+                runner: runner
+            )
+        }
         guard result.status == 0 else {
             throw ArchiveError.commandFailed(
-                readableError(
-                    result.error,
-                    fallback: "The archive contents could not be read."
+                archiveFailureMessage(
+                    action: "read",
+                    detail: result.error
                 )
             )
         }
@@ -303,7 +323,7 @@ enum ArchiveService {
             .filter { !$0.isEmpty }
     }
 
-    private static func validate(_ entries: [String]) throws {
+    static func validate(_ entries: [String]) throws {
         for entry in entries {
             let normalized = entry.replacingOccurrences(
                 of: "\\",
@@ -320,87 +340,260 @@ enum ArchiveService {
         }
     }
 
-    private static func decompressSingleFile(
-        _ archiveURL: URL,
-        to destination: URL,
-        fileExtension: String
+    private static func validateLinks(
+        in archiveURL: URL,
+        entries: [String],
+        runner: CommandRunner
     ) throws {
-        let tool: String
-        switch fileExtension {
-        case "gz":
-            tool = "/usr/bin/gzip"
-        case "bz2":
-            tool = "/usr/bin/bzip2"
-        default:
-            tool = "/usr/bin/xz"
-        }
-        guard FileManager.default.isExecutableFile(atPath: tool) else {
+        let result = invoke(
+            executable: "/usr/bin/tar",
+            arguments: ["-tvf", archiveURL.path],
+            runner: runner
+        )
+        guard result.status == 0 else {
             throw ArchiveError.commandFailed(
-                "This macOS installation does not include the \(fileExtension.uppercased()) decompression tool."
+                archiveFailureMessage(
+                    action: "inspect",
+                    detail: result.error
+                )
             )
         }
 
-        let outputURL = destination.appendingPathComponent(
-            archiveURL.deletingPathExtension().lastPathComponent
-        )
-        FileManager.default.createFile(
-            atPath: outputURL.path,
-            contents: nil
-        )
-        let outputHandle = try FileHandle(forWritingTo: outputURL)
-        defer { try? outputHandle.close() }
-
-        let process = Process()
-        let errorPipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: tool)
-        process.arguments = ["-dc", archiveURL.path]
-        process.standardOutput = outputHandle
-        process.standardError = errorPipe
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            try? FileManager.default.removeItem(at: outputURL)
-            let errorData =
-                errorPipe.fileHandleForReading.readDataToEndOfFile()
+        let descriptions = result.output
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
+        guard descriptions.count == entries.count else {
             throw ArchiveError.commandFailed(
-                readableError(
-                    String(decoding: errorData, as: UTF8.self),
-                    fallback: "The compressed file could not be expanded."
-                )
+                "macOS could not inspect this archive safely because its metadata was inconsistent."
+            )
+        }
+
+        for (name, description) in zip(entries, descriptions) {
+            guard let link = linkTarget(from: description) else {
+                continue
+            }
+            try validateLink(
+                name: name,
+                target: link.target,
+                isHardLink: link.isHardLink
             )
         }
     }
 
-    private static func run(
+    private static func linkTarget(
+        from description: String
+    ) -> (target: String, isHardLink: Bool)? {
+        guard let type = description.first, type == "l" || type == "h" else {
+            return nil
+        }
+
+        let separator = type == "l" ? " -> " : " link to "
+        guard let separatorRange = description.range(
+            of: separator,
+            options: .backwards
+        ) else {
+            return nil
+        }
+
+        let target = String(description[separatorRange.upperBound...])
+        return (target, type == "h")
+    }
+
+    private static func validateLink(
+        name: String,
+        target: String,
+        isHardLink: Bool
+    ) throws {
+        let normalizedName = name.replacingOccurrences(of: "\\", with: "/")
+        let normalizedTarget = target.replacingOccurrences(of: "\\", with: "/")
+        if normalizedTarget.hasPrefix("/") {
+            throw ArchiveError.unsafePath("\(name) -> \(target)")
+        }
+
+        var components = isHardLink
+            ? []
+            : normalizedName.split(separator: "/").dropLast().map(String.init)
+        for component in normalizedTarget.split(
+            separator: "/",
+            omittingEmptySubsequences: false
+        ) {
+            switch component {
+            case "", ".":
+                continue
+            case "..":
+                guard !components.isEmpty else {
+                    throw ArchiveError.unsafePath("\(name) -> \(target)")
+                }
+                components.removeLast()
+            default:
+                components.append(String(component))
+            }
+        }
+    }
+
+    private static func decompressSingleFile(
+        _ archiveURL: URL,
+        to destination: URL,
+        runner: CommandRunner
+    ) throws {
+        let outputURL = destination.appendingPathComponent(
+            archiveURL.deletingPathExtension().lastPathComponent
+        )
+        let temporaryURL = destination.appendingPathComponent(
+            ".\(outputURL.lastPathComponent).\(UUID().uuidString).partial"
+        )
+        defer {
+            try? FileManager.default.removeItem(at: temporaryURL)
+        }
+        let result = invoke(
+            executable: "/usr/bin/tar",
+            arguments: ["-xOf", archiveURL.path],
+            standardOutput: temporaryURL,
+            runner: runner
+        )
+        if result.timedOut {
+            throw ArchiveError.commandFailed(timeoutMessage(action: "expand"))
+        }
+        guard result.status == 0 else {
+            throw ArchiveError.commandFailed(
+                readableError(
+                    result.error,
+                    fallback: "The compressed file could not be expanded."
+                )
+            )
+        }
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+            _ = try FileManager.default.replaceItemAt(
+                outputURL,
+                withItemAt: temporaryURL
+            )
+        } else {
+            try FileManager.default.moveItem(at: temporaryURL, to: outputURL)
+        }
+    }
+
+    static func run(
         executable: String,
-        arguments: [String]
+        arguments: [String],
+        timeout: TimeInterval = 30,
+        standardOutput: URL? = nil
     ) -> CommandResult {
         let process = Process()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
-        process.standardOutput = outputPipe
+        var environment = ProcessInfo.processInfo.environment
+        environment["LC_ALL"] = "C"
+        process.environment = environment
+        var outputHandle: FileHandle?
+        if let standardOutput {
+            FileManager.default.createFile(
+                atPath: standardOutput.path,
+                contents: nil
+            )
+            do {
+                let handle = try FileHandle(forWritingTo: standardOutput)
+                outputHandle = handle
+                process.standardOutput = handle
+            } catch {
+                return CommandResult(
+                    status: -1,
+                    output: "",
+                    error: error.localizedDescription,
+                    timedOut: false
+                )
+            }
+        } else {
+            process.standardOutput = outputPipe
+        }
         process.standardError = errorPipe
+        let termination = terminationSemaphore(for: process)
         do {
             try process.run()
-            let output =
-                outputPipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            let error =
-                errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let reads = DispatchGroup()
+            let output = CommandOutput()
+            let error = CommandOutput()
+            if standardOutput == nil {
+                reads.enter()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    output.capture(from: outputPipe.fileHandleForReading)
+                    reads.leave()
+                }
+            }
+            reads.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                error.capture(from: errorPipe.fileHandleForReading)
+                reads.leave()
+            }
+            let timedOut = waitForExit(
+                process,
+                termination: termination,
+                timeout: timeout
+            )
+            reads.wait()
+            try? outputHandle?.close()
             return CommandResult(
                 status: process.terminationStatus,
-                output: String(decoding: output, as: UTF8.self),
-                error: String(decoding: error, as: UTF8.self)
+                output: String(decoding: output.data, as: UTF8.self),
+                error: timedOut
+                    ? timeoutMessage(action: "finish")
+                    : String(decoding: error.data, as: UTF8.self),
+                timedOut: timedOut
             )
         } catch {
+            try? outputHandle?.close()
             return CommandResult(
                 status: -1,
                 output: "",
-                error: error.localizedDescription
+                error: error.localizedDescription,
+                timedOut: false
             )
         }
+    }
+
+    private static func invoke(
+        executable: String,
+        arguments: [String],
+        standardOutput: URL? = nil,
+        runner: CommandRunner
+    ) -> CommandResult {
+        runner(executable, arguments, commandTimeout, standardOutput)
+    }
+
+    private static func terminationSemaphore(
+        for process: Process
+    ) -> DispatchSemaphore {
+        let termination = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in
+            termination.signal()
+        }
+        return termination
+    }
+
+    @discardableResult
+    private static func waitForExit(
+        _ process: Process,
+        termination: DispatchSemaphore,
+        timeout: TimeInterval
+    ) -> Bool {
+        let deadline = DispatchTime.now() + max(0, timeout)
+        guard termination.wait(timeout: deadline) == .timedOut else {
+            process.waitUntilExit()
+            return false
+        }
+
+        process.terminate()
+        if termination.wait(timeout: .now() + 1) == .timedOut {
+            kill(process.processIdentifier, SIGKILL)
+            termination.wait()
+        }
+        process.waitUntilExit()
+        return true
+    }
+
+    private static func timeoutMessage(action: String) -> String {
+        "The archive tool took too long to \(action) and was stopped. Try a smaller archive or check whether the file is damaged."
     }
 
     private static func readableError(
@@ -413,10 +606,45 @@ enum ArchiveService {
         return trimmed.isEmpty ? fallback : trimmed
     }
 
-    private struct CommandResult {
+    private static func archiveFailureMessage(
+        action: String,
+        detail: String
+    ) -> String {
+        let explanation =
+            "macOS could not \(action) this archive. It may be encrypted, damaged, or use an unsupported archive method."
+        return readableError(detail, fallback: explanation) == explanation
+            ? explanation
+            : "\(explanation) \(readableError(detail, fallback: ""))"
+    }
+
+    private final class CommandOutput: @unchecked Sendable {
+        var data = Data()
+
+        func capture(from handle: FileHandle) {
+            while true {
+                let chunk = handle.availableData
+                guard !chunk.isEmpty else { return }
+
+                if chunk.count >= diagnosticCaptureLimit {
+                    data = chunk.suffix(diagnosticCaptureLimit)
+                    continue
+                }
+
+                let overflow =
+                    data.count + chunk.count - diagnosticCaptureLimit
+                if overflow > 0 {
+                    data.removeFirst(overflow)
+                }
+                data.append(chunk)
+            }
+        }
+    }
+
+    struct CommandResult {
         let status: Int32
         let output: String
         let error: String
+        let timedOut: Bool
     }
 
     enum ArchiveError: LocalizedError {
