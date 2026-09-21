@@ -79,7 +79,7 @@ sh make-dmg.sh
 ```
 
 The finished installer will be named from the value in `VERSION`, for example
-`OpenEverything-1.15.0.dmg`. Open it, then
+`OpenEverything-1.16.0.dmg`. Open it, then
 drag **Open Everything** into **Applications**.
 
 Before publishing a release, complete the physical Apple Silicon EXE launch

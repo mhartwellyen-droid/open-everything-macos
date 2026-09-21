@@ -51,6 +51,7 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 - The wrapper launcher explicitly owns its AppKit application lifecycle and displays a preparation window immediately; do not rely on an implicit SwiftPM app lifecycle.
 - ZIP, 7Z, RAR, TAR, GZIP, BZIP2, and XZ-family files route to a native archive browser with traversal-path validation and Extract All to a user-selected folder.
 - `mac-universal-opener/VERSION` is the single source for app metadata, DMG filenames, and release tags; tagged builds must match it.
+- The main app and generated standalone apps share a circular icon; generated launcher windows support resizing, minimizing, and native macOS full-screen mode.
 - Uses a custom cyan-and-violet portal document icon in Finder, the Dock, and Launchpad; the macOS build generates its `.icns` variants from the source artwork.
 - Can export any selected file as a macOS `.app` wrapper containing its own copy of the file.
 - Moves selected files to Trash only after explicit confirmation.

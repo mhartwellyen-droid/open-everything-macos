@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import LauncherDiagnostics
 
 @MainActor
 final class WrapperLauncher: NSObject, NSApplicationDelegate {
@@ -12,8 +13,11 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
     private var statusLabel: NSTextField?
     private var progressIndicator: NSProgressIndicator?
     private var wineProcess: Process?
+    private let diagnostics = LauncherDiagnostics(component: "Generated Windows App")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        diagnostics.record("Launcher startup")
+        diagnostics.recordSystemStatus()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         showProgress("Preparing Windows app…")
@@ -22,12 +26,16 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
 
     private func start() async {
         guard let payloadURL else {
+            diagnostics.record("Payload discovery failed")
             showFatalError("This app does not contain its Windows file.")
             return
         }
+        diagnostics.record("Payload type: \(payloadURL.pathExtension.lowercased())")
         guard ensureRosetta() else { return }
 
+        diagnostics.record("Wine path: \(wineExecutable.path)")
         if !FileManager.default.isExecutableFile(atPath: wineExecutable.path) {
+            diagnostics.record("Wine runtime: not installed")
             let alert = NSAlert()
             alert.messageText = "Windows support is required"
             alert.informativeText =
@@ -35,6 +43,7 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "Download and Run")
             alert.addButton(withTitle: "Cancel")
             guard alert.runModal() == .alertFirstButtonReturn else {
+                diagnostics.record("Wine download cancelled by user")
                 NSApp.terminate(nil)
                 return
             }
@@ -43,6 +52,7 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             do {
                 try await installRuntime()
             } catch {
+                diagnostics.record("Wine installation failed: \(error.localizedDescription)")
                 showFatalError(
                     "Windows support could not be installed: \(error.localizedDescription)"
                 )
@@ -54,6 +64,7 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
         do {
             try launchWine(payloadURL)
         } catch {
+            diagnostics.record("Wine launch failed: \(error.localizedDescription)")
             showFatalError("The Windows app could not start: \(error.localizedDescription)")
         }
     }
@@ -63,6 +74,7 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
         guard FileManager.default.fileExists(
             atPath: "/Library/Apple/usr/libexec/oah/libRosettaRuntime"
         ) else {
+            diagnostics.record("Rosetta status: not installed")
             let alert = NSAlert()
             alert.messageText = "Rosetta 2 is required"
             alert.informativeText =
@@ -79,11 +91,15 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return false
         }
+        diagnostics.record("Rosetta status: installed")
+        #else
+        diagnostics.record("Rosetta status: not required on Intel")
         #endif
         return true
     }
 
     private func installRuntime() async throws {
+        diagnostics.record("Wine download started")
         let (downloadedURL, response) = try await URLSession.shared.download(
             from: runtimeDownloadURL
         )
@@ -91,11 +107,13 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             let http = response as? HTTPURLResponse,
             http.statusCode == 200
         else {
+            diagnostics.record("Wine download failed: unexpected HTTP response")
             throw LauncherError.downloadFailed
         }
+        diagnostics.record("Wine download completed: HTTP \(http.statusCode)")
 
         let root = runtimeRoot
-        try await Task.detached {
+        let extractionStatus = try await Task.detached {
             let fileManager = FileManager.default
             let work = root.deletingLastPathComponent()
                 .appendingPathComponent(
@@ -134,10 +152,15 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             )
             try fileManager.copyItem(at: source, to: root)
             try? fileManager.removeItem(at: work)
+            return process.terminationStatus
         }.value
+        diagnostics.record("Wine extraction completed: exit \(extractionStatus)")
+        diagnostics.recordWineVersion(at: wineExecutable)
     }
 
     private func launchWine(_ payloadURL: URL) throws {
+        diagnostics.recordWineVersion(at: wineExecutable)
+        diagnostics.record("Wine launch requested")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/arch")
         process.arguments = ["-x86_64", wineExecutable.path]
@@ -153,12 +176,22 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             at: winePrefix,
             withIntermediateDirectories: true
         )
-        process.terminationHandler = { _ in
+        process.terminationHandler = { [diagnostics] completed in
+            diagnostics.record(
+                "Wine exited: status \(completed.terminationStatus), reason \(completed.terminationReason.rawValue)"
+            )
             DispatchQueue.main.async {
-                NSApp.terminate(nil)
+                if completed.terminationStatus == 0 {
+                    NSApp.terminate(nil)
+                } else {
+                    self.showFatalError(
+                        "Wine stopped with exit status \(completed.terminationStatus)."
+                    )
+                }
             }
         }
         try process.run()
+        diagnostics.record("Wine process started: pid \(process.processIdentifier)")
         wineProcess = process
         window?.orderOut(nil)
     }
@@ -184,18 +217,45 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
             let label = NSTextField(labelWithString: message)
             label.alignment = .center
             label.font = .systemFont(ofSize: 16, weight: .medium)
-            label.frame = NSRect(x: 24, y: 85, width: 392, height: 28)
-            let progress = NSProgressIndicator(
-                frame: NSRect(x: 70, y: 50, width: 300, height: 16)
-            )
+            label.translatesAutoresizingMaskIntoConstraints = false
+            let progress = NSProgressIndicator()
             progress.style = .bar
             progress.isIndeterminate = true
+            progress.translatesAutoresizingMaskIntoConstraints = false
             progress.startAnimation(nil)
             content.addSubview(label)
             content.addSubview(progress)
+            NSLayoutConstraint.activate([
+                label.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+                label.centerYAnchor.constraint(
+                    equalTo: content.centerYAnchor,
+                    constant: 16
+                ),
+                label.leadingAnchor.constraint(
+                    greaterThanOrEqualTo: content.leadingAnchor,
+                    constant: 24
+                ),
+                label.trailingAnchor.constraint(
+                    lessThanOrEqualTo: content.trailingAnchor,
+                    constant: -24
+                ),
+                progress.centerXAnchor.constraint(
+                    equalTo: content.centerXAnchor
+                ),
+                progress.topAnchor.constraint(
+                    equalTo: label.bottomAnchor,
+                    constant: 12
+                ),
+                progress.widthAnchor.constraint(equalToConstant: 300)
+            ])
             let created = NSWindow(
                 contentRect: content.bounds,
-                styleMask: [.titled, .closable],
+                styleMask: [
+                    .titled,
+                    .closable,
+                    .miniaturizable,
+                    .resizable
+                ],
                 backing: .buffered,
                 defer: false
             )
@@ -203,6 +263,8 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
                 forInfoDictionaryKey: "CFBundleDisplayName"
             ) as? String ?? "Windows App"
             created.contentView = content
+            created.collectionBehavior.insert(.fullScreenPrimary)
+            created.minSize = NSSize(width: 440, height: 150)
             created.center()
             window = created
             statusLabel = label
@@ -213,13 +275,27 @@ final class WrapperLauncher: NSObject, NSApplicationDelegate {
     }
 
     private func showFatalError(_ message: String) {
+        diagnostics.record("Fatal error summary: \(message)")
         window?.orderOut(nil)
         let alert = NSAlert()
         alert.alertStyle = .critical
         alert.messageText = "Couldn’t open this Windows app"
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+        alert.addButton(withTitle: "Copy Diagnostics")
+        alert.addButton(withTitle: "Save Diagnostic Report")
+        alert.addButton(withTitle: "Quit")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            diagnostics.copyToPasteboard()
+            showFatalError(message)
+            return
+        case .alertSecondButtonReturn:
+            diagnostics.presentSavePanel()
+            showFatalError(message)
+            return
+        default:
+            break
+        }
         NSApp.terminate(nil)
     }
 
