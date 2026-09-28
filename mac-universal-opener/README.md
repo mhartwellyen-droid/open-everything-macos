@@ -13,6 +13,7 @@ https://github.com/mhartwellyen-droid/open-everything-macos.
 - NES ROMs run directly in the bundled emulator, with video, audio, and keyboard controls.
 - 3D models open in an interactive native viewer with orbit, pan, and zoom controls. Supported formats include OBJ, STL, PLY, DAE, 3DS, Alembic, SceneKit, and USD/USDZ variants.
 - Any format supported by macOS Quick Look, including common images, PDFs, audio, video, Office/iWork documents, fonts, 3D assets, and many archives.
+- Downloaded `.webm` videos open in a local playback view using macOS WebKit controls. Playback depends on the video/audio codecs supported by the installed macOS; you can reveal the file in Finder to open it with another player.
 - ZIP, 7Z, RAR, TAR, GZIP, BZIP2, and XZ-family archives open in a native content browser with safe-path validation and Extract All to a chosen folder.
 - Text and source-code files in a selectable raw-text view.
 - Unknown, proprietary, or partially corrupted files in a hexadecimal inspector.
@@ -79,7 +80,7 @@ sh make-dmg.sh
 ```
 
 The finished installer will be named from the value in `VERSION`, for example
-`OpenEverything-1.16.0.dmg`. Open it, then
+`OpenEverything-1.17.0.dmg`. Open it, then
 drag **Open Everything** into **Applications**.
 
 Before publishing a release, complete the physical Apple Silicon EXE launch

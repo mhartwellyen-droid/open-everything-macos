@@ -187,7 +187,10 @@ struct ContentView: View {
                 Divider()
                 switch tab {
                 case .preview:
-                    if url.pathExtension.lowercased() == "nes" {
+                    if url.pathExtension.lowercased() == "webm" {
+                        WebMPlayerView(url: url)
+                            .id(url)
+                    } else if url.pathExtension.lowercased() == "nes" {
                         NESPlayerView(romURL: url)
                             .id(url)
                     } else if ArchiveBrowserView.supportedExtensions.contains(
